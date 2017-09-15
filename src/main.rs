@@ -1,4 +1,7 @@
 use std::env;
+use std::io;
+use std::io::prelude::*;
+use std::fs::File;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -13,9 +16,21 @@ fn main() {
 }
 
 fn run_file(file_name: &str) {
-    println!("I'm running the script: {}", file_name);
+    let mut f = File::open(file_name).unwrap();
+    let mut buffer = String::new();
+    f.read_to_string(&mut buffer).unwrap();
+    run(buffer);
 }
 
 fn run_prompt() {
-    println!("I'm running the prompt!");
+    loop {
+        print!("> ");
+        io::stdout().flush().unwrap();
+        let mut input = String::new();
+        io::stdin().read_line(&mut input).unwrap();
+        run(input);
+    }
 }
+
+
+fn run(buffer: String) {}
