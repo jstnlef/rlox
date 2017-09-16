@@ -34,7 +34,7 @@ impl Scanner {
         self.current >= self.source.len()
     }
 
-    fn scan_token(&mut self) -> Result<Token, String> {
+    fn scan_token(&mut self) -> Result<Token, ScanError> {
         let c = self.advance();
         match c {
             '(' => Ok(self.create_token(TokenType::LEFT_PAREN)),
@@ -79,7 +79,7 @@ impl Scanner {
                     Ok(self.create_token(TokenType::GREATER))
                 }
             }
-            _ => Err("Unexpected character.".to_owned()),
+            _ => Err(ScanError::new(self.line, "Unexpected character.")),
         }
     }
 
@@ -170,4 +170,18 @@ pub enum TokenType {
     WHILE,
 
     EOF,
+}
+
+struct ScanError {
+    line: i32,
+    message: String,
+}
+
+impl ScanError {
+    fn new(line: i32, message: &str) -> Self {
+        ScanError {
+            line: line,
+            message: message.to_owned(),
+        }
+    }
 }
