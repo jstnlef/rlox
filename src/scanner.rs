@@ -172,7 +172,7 @@ pub enum TokenType {
     EOF,
 }
 
-struct ScanError {
+pub struct ScanError {
     line: i32,
     message: String,
 }
