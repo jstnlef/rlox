@@ -21,7 +21,10 @@ impl Scanner {
     pub fn scan_tokens(&mut self) -> Vec<Token> {
         while !self.is_at_end() {
             self.start = self.current;
-            self.scan_token();
+            match self.scan_token() {
+                Ok(token) => self.tokens.push(token),
+                Err(s) => {}
+            }
         }
         self.tokens.push(Token::new(TokenType::EOF, "", self.line));
         self.tokens.to_vec()
@@ -31,21 +34,61 @@ impl Scanner {
         self.current >= self.source.len()
     }
 
-    fn scan_token(&mut self) {
+    fn scan_token(&mut self) -> Result<Token, String> {
         let c = self.advance();
         match c {
-            '(' => self.add_token(TokenType::LEFT_PAREN),
-            ')' => self.add_token(TokenType::RIGHT_PAREN),
-            '{' => self.add_token(TokenType::LEFT_BRACE),
-            '}' => self.add_token(TokenType::RIGHT_BRACE),
-            ',' => self.add_token(TokenType::COMMA),
-            '.' => self.add_token(TokenType::DOT),
-            '-' => self.add_token(TokenType::MINUS),
-            '+' => self.add_token(TokenType::PLUS),
-            ';' => self.add_token(TokenType::SEMICOLON),
-            '*' => self.add_token(TokenType::STAR),
-            _ => {}
+            '(' => Ok(self.create_token(TokenType::LEFT_PAREN)),
+            ')' => Ok(self.create_token(TokenType::RIGHT_PAREN)),
+            '{' => Ok(self.create_token(TokenType::LEFT_BRACE)),
+            '}' => Ok(self.create_token(TokenType::RIGHT_BRACE)),
+            ',' => Ok(self.create_token(TokenType::COMMA)),
+            '.' => Ok(self.create_token(TokenType::DOT)),
+            '-' => Ok(self.create_token(TokenType::MINUS)),
+            '+' => Ok(self.create_token(TokenType::PLUS)),
+            ';' => Ok(self.create_token(TokenType::SEMICOLON)),
+            '*' => Ok(self.create_token(TokenType::STAR)),
+            '!' => {
+                if self.match_char('=') {
+                    self.advance();
+                    Ok(self.create_token(TokenType::BANG_EQUAL))
+                } else {
+                    Ok(self.create_token(TokenType::BANG))
+                }
+            }
+            '=' => {
+                if self.match_char('=') {
+                    self.advance();
+                    Ok(self.create_token(TokenType::EQUAL_EQUAL))
+                } else {
+                    Ok(self.create_token(TokenType::EQUAL))
+                }
+            }
+            '<' => {
+                if self.match_char('=') {
+                    self.advance();
+                    Ok(self.create_token(TokenType::LESS_EQUAL))
+                } else {
+                    Ok(self.create_token(TokenType::LESS))
+                }
+            }
+            '>' => {
+                if self.match_char('=') {
+                    self.advance();
+                    Ok(self.create_token(TokenType::GREATER_EQUAL))
+                } else {
+                    Ok(self.create_token(TokenType::GREATER))
+                }
+            }
+            _ => Err("Unexpected character.".to_owned()),
         }
+    }
+
+    fn match_char(&self, c: char) -> bool {
+        if self.is_at_end() {
+            return false;
+        }
+        let b = self.source.as_bytes();
+        b[self.current] as char == c
     }
 
     fn advance(&mut self) -> char {
@@ -54,9 +97,9 @@ impl Scanner {
         b[self.current - 1] as char
     }
 
-    fn add_token(&mut self, token_type: TokenType) {
+    fn create_token(&self, token_type: TokenType) -> Token {
         let s = &self.source[self.start as usize..self.current as usize];
-        self.tokens.push(Token::new(token_type, s, self.line));
+        Token::new(token_type, s, self.line)
     }
 }
 
