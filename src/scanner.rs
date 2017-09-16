@@ -23,7 +23,7 @@ impl Scanner {
             self.start = self.current;
             match self.scan_token() {
                 Ok(token) => self.tokens.push(token),
-                Err(s) => {}
+                Err(err) => {}
             }
         }
         self.tokens.push(Token::new(TokenType::EOF, "", self.line));
@@ -79,16 +79,30 @@ impl Scanner {
                     Ok(self.create_token(TokenType::GREATER))
                 }
             }
+            '/' => {
+                if self.match_char('/') {
+                    while self.peek() != '\n' && !self.is_at_end() {
+                        self.advance();
+                    }
+                    Ok(self.create_token(TokenType::COMMENT))
+                } else {
+                    Ok(self.create_token(TokenType::SLASH))
+                }
+            }
             _ => Err(ScanError::new(self.line, "Unexpected character.")),
         }
     }
 
-    fn match_char(&self, c: char) -> bool {
+    fn peek(&self) -> char {
         if self.is_at_end() {
-            return false;
+            return '\0';
         }
         let b = self.source.as_bytes();
-        b[self.current] as char == c
+        b[self.current] as char
+    }
+
+    fn match_char(&self, c: char) -> bool {
+        self.peek() == c
     }
 
     fn advance(&mut self) -> char {
@@ -169,6 +183,7 @@ pub enum TokenType {
     VAR,
     WHILE,
 
+    COMMENT,
     EOF,
 }
 
