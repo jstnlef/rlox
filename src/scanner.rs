@@ -22,7 +22,11 @@ impl Scanner {
         while !self.is_at_end() {
             self.start = self.current;
             match self.scan_token() {
-                Ok(token) => self.tokens.push(token),
+                Ok(token) => {
+                    if !token.token_type.is_ignored() {
+                        self.tokens.push(token);
+                    }
+                }
                 Err(err) => {}
             }
         }
@@ -89,6 +93,11 @@ impl Scanner {
                     Ok(self.create_token(TokenType::SLASH))
                 }
             }
+            ' ' | '\r' | '\t' => Ok(self.create_token(TokenType::WHITESPACE)),
+            '\n' => {
+                self.line += 1;
+                Ok(self.create_token(TokenType::NEWLINE))
+            }
             _ => Err(ScanError::new(self.line, "Unexpected character.")),
         }
     }
@@ -134,7 +143,7 @@ impl Token {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 #[allow(non_camel_case_types)]
 pub enum TokenType {
     // Single-character tokens.
@@ -183,8 +192,19 @@ pub enum TokenType {
     VAR,
     WHILE,
 
-    COMMENT,
     EOF,
+
+    // IGNORED lexemes
+    COMMENT,
+    WHITESPACE,
+    NEWLINE,
+}
+
+impl TokenType {
+    fn is_ignored(&self) -> bool {
+        let n = *self as u8;
+        n > 38
+    }
 }
 
 pub struct ScanError {

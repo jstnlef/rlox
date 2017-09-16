@@ -1,2 +1,5 @@
-// I'm a comment!
 3 + 4 == 7
+
+// this is a comment
+(( )){} // grouping stuff
+!*+-/=<> <= == // operators
