@@ -2,8 +2,8 @@
 pub struct Scanner {
     source: String,
     tokens: Vec<Token>,
-    start: i32,
-    current: i32,
+    start: usize,
+    current: usize,
     line: i32,
 }
 
@@ -28,10 +28,36 @@ impl Scanner {
     }
 
     fn is_at_end(&self) -> bool {
-        self.current >= self.source.len() as i32
+        self.current >= self.source.len()
     }
 
-    fn scan_token(&mut self) {}
+    fn scan_token(&mut self) {
+        let c = self.advance();
+        match c {
+            '(' => self.add_token(TokenType::LEFT_PAREN),
+            ')' => self.add_token(TokenType::RIGHT_PAREN),
+            '{' => self.add_token(TokenType::LEFT_BRACE),
+            '}' => self.add_token(TokenType::RIGHT_BRACE),
+            ',' => self.add_token(TokenType::COMMA),
+            '.' => self.add_token(TokenType::DOT),
+            '-' => self.add_token(TokenType::MINUS),
+            '+' => self.add_token(TokenType::PLUS),
+            ';' => self.add_token(TokenType::SEMICOLON),
+            '*' => self.add_token(TokenType::STAR),
+            _ => {}
+        }
+    }
+
+    fn advance(&mut self) -> char {
+        self.current += 1;
+        let b = self.source.as_bytes();
+        b[self.current - 1] as char
+    }
+
+    fn add_token(&mut self, token_type: TokenType) {
+        let s = &self.source[self.start as usize..self.current as usize];
+        self.tokens.push(Token::new(token_type, s, self.line));
+    }
 }
 
 #[derive(Clone, Debug)]
