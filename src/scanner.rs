@@ -30,7 +30,8 @@ impl Scanner {
                 Err(err) => {}
             }
         }
-        self.tokens.push(Token::new(TokenType::EOF, "", self.line));
+        self.tokens
+            .push(Token::new(TokenType::EOF, "", Literal::Nil, self.line));
         self.tokens.to_vec()
     }
 
@@ -98,8 +99,29 @@ impl Scanner {
                 self.line += 1;
                 Ok(self.create_token(TokenType::NEWLINE))
             }
+            '"' => self.scan_string(),
             _ => Err(ScanError::new(self.line, "Unexpected character.")),
         }
+    }
+
+    fn scan_string(&mut self) -> Result<Token, ScanError> {
+        while self.peek() != '"' && !self.is_at_end() {
+            if self.peek() == '\n' {
+                self.line += 1;
+            }
+            self.advance();
+        }
+        // Unterminated string.
+        if self.is_at_end() {
+            return Err(ScanError::new(self.line, "Unterminated string."));
+        }
+
+        // The closing ".
+        self.advance();
+
+        // Trim the surrounding quotes.
+        let value = &self.source[self.start + 1..self.current - 1];
+        Ok(self.create_token_with_literal(TokenType::STRING, Literal::String(value.to_owned())))
     }
 
     fn peek(&self) -> char {
@@ -121,8 +143,12 @@ impl Scanner {
     }
 
     fn create_token(&self, token_type: TokenType) -> Token {
+        self.create_token_with_literal(token_type, Literal::Nil)
+    }
+
+    fn create_token_with_literal(&self, token_type: TokenType, literal: Literal) -> Token {
         let s = &self.source[self.start as usize..self.current as usize];
-        Token::new(token_type, s, self.line)
+        Token::new(token_type, s, literal, self.line)
     }
 }
 
@@ -130,14 +156,16 @@ impl Scanner {
 pub struct Token {
     token_type: TokenType,
     lexeme: String,
+    literal: Literal,
     line: i32,
 }
 
 impl Token {
-    pub fn new(token_type: TokenType, lexeme: &str, line: i32) -> Self {
+    pub fn new(token_type: TokenType, lexeme: &str, literal: Literal, line: i32) -> Self {
         Token {
             token_type: token_type,
             lexeme: lexeme.to_owned(),
+            literal: literal,
             line: line,
         }
     }
@@ -205,6 +233,14 @@ impl TokenType {
         let n = *self as u8;
         n > 38
     }
+}
+
+#[derive(Clone, Debug)]
+pub enum Literal {
+    Identifier(String),
+    String(String),
+    Number(f64),
+    Nil,
 }
 
 pub struct ScanError {
