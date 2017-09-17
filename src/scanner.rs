@@ -100,6 +100,7 @@ impl Scanner {
                 Ok(self.create_token(TokenType::NEWLINE))
             }
             '"' => self.scan_string(),
+            c if c.is_digit(10) => self.scan_number(),
             _ => Err(ScanError::new(self.line, "Unexpected character.")),
         }
     }
@@ -124,12 +125,38 @@ impl Scanner {
         Ok(self.create_token_with_literal(TokenType::STRING, Literal::String(value.to_owned())))
     }
 
+    fn scan_number(&mut self) -> Result<Token, ScanError> {
+        while self.peek().is_digit(10) {
+            self.advance();
+        }
+
+        // Look for a fractional part.
+        if self.peek() == '.' && self.peek_next().is_digit(10) {
+            // Consume the "."
+            self.advance();
+            while self.peek().is_digit(10) {
+                self.advance();
+            }
+        }
+        let value = &self.source[self.start..self.current];
+        Ok(self.create_token_with_literal(TokenType::NUMBER,
+                                          Literal::Number(value.parse::<f64>().unwrap())))
+    }
+
     fn peek(&self) -> char {
         if self.is_at_end() {
             return '\0';
         }
         let b = self.source.as_bytes();
         b[self.current] as char
+    }
+
+    fn peek_next(&self) -> char {
+        if self.current + 1 >= self.source.len() {
+            return '\0';
+        }
+        let b = self.source.as_bytes();
+        b[self.current + 1] as char
     }
 
     fn match_char(&self, c: char) -> bool {

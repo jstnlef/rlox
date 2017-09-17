@@ -5,3 +5,6 @@
 !*+-/=<> <= == // operators
 
 "this is a string"
+
+// floating point
+123.4567
