@@ -53,6 +53,7 @@ impl Scanner {
             '+' => Ok(self.create_token(TokenType::PLUS)),
             ';' => Ok(self.create_token(TokenType::SEMICOLON)),
             '*' => Ok(self.create_token(TokenType::STAR)),
+            // TODO: A bit of duplication here. Should refactor at some point.
             '!' => {
                 if self.match_char('=') {
                     self.advance();
@@ -190,7 +191,7 @@ impl Scanner {
     }
 
     fn create_token_with_literal(&self, token_type: TokenType, literal: Literal) -> Token {
-        let s = &self.source[self.start as usize..self.current as usize];
+        let s = &self.source[self.start..self.current];
         Token::new(token_type, s, literal, self.line)
     }
 }
