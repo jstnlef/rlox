@@ -8,3 +8,17 @@
 
 // floating point
 123.4567
+
+// identifier
+x = 4
+
+// keywords
+and
+false
+true
+or
+nil
+var
+while
+super
+ident

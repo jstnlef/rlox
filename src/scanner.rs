@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 
 pub struct Scanner {
     source: String,
@@ -27,7 +28,7 @@ impl Scanner {
                         self.tokens.push(token);
                     }
                 }
-                Err(err) => {}
+                Err(_) => {}
             }
         }
         self.tokens
@@ -101,6 +102,7 @@ impl Scanner {
             }
             '"' => self.scan_string(),
             c if c.is_digit(10) => self.scan_number(),
+            c if c.is_alphabetic() => self.scan_identifier(),
             _ => Err(ScanError::new(self.line, "Unexpected character.")),
         }
     }
@@ -141,6 +143,20 @@ impl Scanner {
         let value = &self.source[self.start..self.current];
         Ok(self.create_token_with_literal(TokenType::NUMBER,
                                           Literal::Number(value.parse::<f64>().unwrap())))
+    }
+
+    fn scan_identifier(&mut self) -> Result<Token, ScanError> {
+        while self.peek().is_alphanumeric() {
+            self.advance();
+        }
+
+        let text = &self.source[self.start..self.current];
+        let token_type = match KEYWORDS.get(text) {
+            Some(t) => *t,
+            None => TokenType::IDENTIFIER,
+        };
+
+        Ok(self.create_token(token_type))
     }
 
     fn peek(&self) -> char {
@@ -264,7 +280,6 @@ impl TokenType {
 
 #[derive(Clone, Debug)]
 pub enum Literal {
-    Identifier(String),
     String(String),
     Number(f64),
     Nil,
@@ -282,4 +297,27 @@ impl ScanError {
             message: message.to_owned(),
         }
     }
+}
+
+lazy_static! {
+    static ref KEYWORDS: HashMap<&'static str, TokenType> = {
+        let mut m = HashMap::new();
+        m.insert("and", TokenType::AND);
+        m.insert("class", TokenType::CLASS);
+        m.insert("else", TokenType::ELSE);
+        m.insert("false", TokenType::FALSE);
+        m.insert("for", TokenType::FOR);
+        m.insert("fun", TokenType::FUN);
+        m.insert("if", TokenType::IF);
+        m.insert("nil", TokenType::NIL);
+        m.insert("or", TokenType::OR);
+        m.insert("print", TokenType::PRINT);
+        m.insert("return", TokenType::RETURN);
+        m.insert("super", TokenType::SUPER);
+        m.insert("this", TokenType::THIS);
+        m.insert("true", TokenType::TRUE);
+        m.insert("var", TokenType::VAR);
+        m.insert("while", TokenType::WHILE);
+        m
+    };
 }
