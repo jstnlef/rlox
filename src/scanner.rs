@@ -156,8 +156,15 @@ impl Scanner {
             Some(t) => *t,
             None => TokenType::IDENTIFIER,
         };
-
-        Ok(self.create_token(token_type))
+        Ok(match token_type {
+               TokenType::TRUE => {
+                   self.create_token_with_literal(token_type, Literal::Boolean(true))
+               }
+               TokenType::FALSE => {
+                   self.create_token_with_literal(token_type, Literal::Boolean(false))
+               }
+               _ => self.create_token(token_type),
+           })
     }
 
     fn peek(&self) -> char {
@@ -283,6 +290,7 @@ impl TokenType {
 pub enum Literal {
     String(String),
     Number(f64),
+    Boolean(bool),
     Nil,
 }
 
