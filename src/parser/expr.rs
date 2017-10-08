@@ -10,3 +10,7 @@ pub enum Expr {
     Unary(Token, Box<Expr>),
     Grouping(Box<Expr>),
 }
+
+pub trait Visitor<E> {
+    fn visit_expr(&mut self, expr: &Box<Expr>) -> E;
+}

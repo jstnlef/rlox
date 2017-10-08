@@ -1,3 +1,4 @@
+use std::fmt;
 use std::collections::HashMap;
 
 pub struct Scanner {
@@ -23,11 +24,9 @@ impl Scanner {
         while !self.is_at_end() {
             self.start = self.current;
             match self.scan_token() {
-                Ok(token) => {
-                    if !token.token_type.is_ignored() {
-                        self.tokens.push(token);
-                    }
-                }
+                Ok(token) => if !token.token_type.is_ignored() {
+                    self.tokens.push(token);
+                },
                 Err(_) => {}
             }
         }
@@ -54,48 +53,38 @@ impl Scanner {
             ';' => Ok(self.create_token(TokenType::SEMICOLON)),
             '*' => Ok(self.create_token(TokenType::STAR)),
             // TODO: A bit of duplication here. Should refactor at some point.
-            '!' => {
-                if self.match_char('=') {
+            '!' => if self.match_char('=') {
+                self.advance();
+                Ok(self.create_token(TokenType::BANG_EQUAL))
+            } else {
+                Ok(self.create_token(TokenType::BANG))
+            },
+            '=' => if self.match_char('=') {
+                self.advance();
+                Ok(self.create_token(TokenType::EQUAL_EQUAL))
+            } else {
+                Ok(self.create_token(TokenType::EQUAL))
+            },
+            '<' => if self.match_char('=') {
+                self.advance();
+                Ok(self.create_token(TokenType::LESS_EQUAL))
+            } else {
+                Ok(self.create_token(TokenType::LESS))
+            },
+            '>' => if self.match_char('=') {
+                self.advance();
+                Ok(self.create_token(TokenType::GREATER_EQUAL))
+            } else {
+                Ok(self.create_token(TokenType::GREATER))
+            },
+            '/' => if self.match_char('/') {
+                while self.peek() != '\n' && !self.is_at_end() {
                     self.advance();
-                    Ok(self.create_token(TokenType::BANG_EQUAL))
-                } else {
-                    Ok(self.create_token(TokenType::BANG))
                 }
-            }
-            '=' => {
-                if self.match_char('=') {
-                    self.advance();
-                    Ok(self.create_token(TokenType::EQUAL_EQUAL))
-                } else {
-                    Ok(self.create_token(TokenType::EQUAL))
-                }
-            }
-            '<' => {
-                if self.match_char('=') {
-                    self.advance();
-                    Ok(self.create_token(TokenType::LESS_EQUAL))
-                } else {
-                    Ok(self.create_token(TokenType::LESS))
-                }
-            }
-            '>' => {
-                if self.match_char('=') {
-                    self.advance();
-                    Ok(self.create_token(TokenType::GREATER_EQUAL))
-                } else {
-                    Ok(self.create_token(TokenType::GREATER))
-                }
-            }
-            '/' => {
-                if self.match_char('/') {
-                    while self.peek() != '\n' && !self.is_at_end() {
-                        self.advance();
-                    }
-                    Ok(self.create_token(TokenType::COMMENT))
-                } else {
-                    Ok(self.create_token(TokenType::SLASH))
-                }
-            }
+                Ok(self.create_token(TokenType::COMMENT))
+            } else {
+                Ok(self.create_token(TokenType::SLASH))
+            },
             ' ' | '\r' | '\t' => Ok(self.create_token(TokenType::WHITESPACE)),
             '\n' => {
                 self.line += 1;
@@ -142,8 +131,10 @@ impl Scanner {
             }
         }
         let value = &self.source[self.start..self.current];
-        Ok(self.create_token_with_literal(TokenType::NUMBER,
-                                          Literal::Number(value.parse::<f64>().unwrap())))
+        Ok(self.create_token_with_literal(
+            TokenType::NUMBER,
+            Literal::Number(value.parse::<f64>().unwrap()),
+        ))
     }
 
     fn scan_identifier(&mut self) -> Result<Token, ScanError> {
@@ -157,14 +148,10 @@ impl Scanner {
             None => TokenType::IDENTIFIER,
         };
         Ok(match token_type {
-               TokenType::TRUE => {
-                   self.create_token_with_literal(token_type, Literal::Boolean(true))
-               }
-               TokenType::FALSE => {
-                   self.create_token_with_literal(token_type, Literal::Boolean(false))
-               }
-               _ => self.create_token(token_type),
-           })
+            TokenType::TRUE => self.create_token_with_literal(token_type, Literal::Boolean(true)),
+            TokenType::FALSE => self.create_token_with_literal(token_type, Literal::Boolean(false)),
+            _ => self.create_token(token_type),
+        })
     }
 
     fn peek(&self) -> char {
@@ -205,10 +192,10 @@ impl Scanner {
 
 #[derive(Clone, Debug)]
 pub struct Token {
-    token_type: TokenType,
-    lexeme: String,
-    literal: Literal,
-    line: i32,
+    pub token_type: TokenType,
+    pub lexeme: String,
+    pub literal: Literal,
+    pub line: i32,
 }
 
 impl Token {
@@ -292,6 +279,17 @@ pub enum Literal {
     Number(f64),
     Boolean(bool),
     Nil,
+}
+
+impl fmt::Display for Literal {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            Literal::String(ref s) => write!(f, "{}", s),
+            Literal::Number(n) => write!(f, "{}", n),
+            Literal::Boolean(b) => write!(f, "{}", b),
+            Literal::Nil => write!(f, "nil"),
+        }
+    }
 }
 
 pub struct ScanError {

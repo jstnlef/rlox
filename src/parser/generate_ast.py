@@ -6,6 +6,7 @@ def generate_AST(output_dir, base_name, types):
         f.write("use scanner::{Literal, Token};\n")
         write_ast_struct(f)
         write_expr_enum(f, types)
+        write_visitor(f, base_name)
 
 
 def write_ast_struct(file):
@@ -21,6 +22,14 @@ def write_expr_enum(file, types):
     for class_name, fields in types:
         file.write(f'    {class_name}({", ".join(fields)}),\n')
 
+    file.write('}\n')
+
+
+def write_visitor(file, base_name):
+    file.write('\n')
+    file.write('pub trait Visitor<E> {\n')
+    file.write(
+        f'    fn visit_{base_name}(&mut self, {base_name.lower()}: &Box<{base_name.capitalize()}>) -> E;\n')
     file.write('}\n')
 
 
