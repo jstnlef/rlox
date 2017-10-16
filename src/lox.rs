@@ -3,7 +3,9 @@ use std::io::prelude::*;
 use std::fs::File;
 use std::process;
 
-use scanner::{Scanner, Token};
+use scanner::{Scanner, Token, TokenType};
+use parser::ast_printer::AstPrinter;
+use parser::parser::Parser;
 
 pub struct Lox {
     had_error: bool,
@@ -37,13 +39,25 @@ impl Lox {
 
     fn run(&mut self, source: String) {
         let mut scanner = Scanner::new(source);
-        let tokens: Vec<Token> = scanner.scan_tokens();
-        for token in tokens {
-            println!("{:?}", token);
+        let tokens = scanner.scan_tokens();
+        let mut parser = Parser::new(tokens);
+        let ast = parser.parse();
+
+        match ast {
+            Ok(tree) => println!("{}", AstPrinter::new().print_ast(&tree)),
+            Err(e) => {}
         }
     }
 
-    fn error(&mut self, line: i32, message: &str) {
+    fn token_error(&mut self, token: &Token, message: &str) {
+        if token.token_type == TokenType::EOF {
+            self.report(token.line, " at end", message);
+        } else {
+            self.report(token.line, &format!(" at '{}'", token.lexeme), message);
+        }
+    }
+
+    fn line_error(&mut self, line: i32, message: &str) {
         self.report(line, "", message);
     }
 

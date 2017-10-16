@@ -1,7 +1,7 @@
 use scanner::{Literal, Token};
 
 pub struct AST {
-    root: Box<Expr>,
+    pub root: Box<Expr>,
 }
 
 pub enum Expr {

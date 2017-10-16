@@ -12,7 +12,7 @@ def generate_AST(output_dir, base_name, types):
 def write_ast_struct(file):
     file.write('\n')
     file.write('pub struct AST {\n')
-    file.write('    root: Box<Expr>,\n')
+    file.write('    pub root: Box<Expr>,\n')
     file.write('}\n')
 
 

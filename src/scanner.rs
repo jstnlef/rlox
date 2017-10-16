@@ -39,7 +39,7 @@ impl Scanner {
         self.current >= self.source.len()
     }
 
-    fn scan_token(&mut self) -> Result<Token, ScanError> {
+    fn scan_token(&mut self) -> ScanResult<Token> {
         let c = self.advance();
         match c {
             '(' => Ok(self.create_token(TokenType::LEFT_PAREN)),
@@ -97,7 +97,7 @@ impl Scanner {
         }
     }
 
-    fn scan_string(&mut self) -> Result<Token, ScanError> {
+    fn scan_string(&mut self) -> ScanResult<Token> {
         while self.peek() != '"' && !self.is_at_end() {
             if self.peek() == '\n' {
                 self.line += 1;
@@ -117,7 +117,7 @@ impl Scanner {
         Ok(self.create_token_with_literal(TokenType::STRING, Literal::String(value.to_owned())))
     }
 
-    fn scan_number(&mut self) -> Result<Token, ScanError> {
+    fn scan_number(&mut self) -> ScanResult<Token> {
         while self.peek().is_digit(10) {
             self.advance();
         }
@@ -137,7 +137,7 @@ impl Scanner {
         ))
     }
 
-    fn scan_identifier(&mut self) -> Result<Token, ScanError> {
+    fn scan_identifier(&mut self) -> ScanResult<Token> {
         while self.peek().is_alphanumeric() {
             self.advance();
         }
@@ -291,6 +291,8 @@ impl fmt::Display for Literal {
         }
     }
 }
+
+type ScanResult<T> = Result<T, ScanError>;
 
 pub struct ScanError {
     line: i32,

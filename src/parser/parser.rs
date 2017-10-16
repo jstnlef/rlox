@@ -1,5 +1,5 @@
-use scanner::{Literal, Token, TokenType};
-use parser::expr::Expr;
+use scanner::{Token, TokenType};
+use parser::expr::{Expr, AST};
 
 macro_rules! binary {
     ($self:expr, $func:expr, $token_types:expr) => {{
@@ -8,7 +8,7 @@ macro_rules! binary {
         while $self.match_token($token_types) {
             let operator = $self.previous().clone();
             let right = $func;
-            expr = Box::new(Expr::Binary(expr, operator, right))
+            expr = Ok(Box::new(Expr::Binary(expr?, operator, right?)))
         }
         expr
     }}
@@ -27,11 +27,16 @@ impl Parser {
         }
     }
 
-    fn expression(&mut self) -> Box<Expr> {
+    pub fn parse(&mut self) -> ParseResult<AST> {
+        let expr = self.expression()?;
+        Ok(AST { root: expr })
+    }
+
+    fn expression(&mut self) -> ParseResult<Box<Expr>> {
         self.equality()
     }
 
-    fn equality(&mut self) -> Box<Expr> {
+    fn equality(&mut self) -> ParseResult<Box<Expr>> {
         binary!(
             self,
             self.comparison(),
@@ -39,7 +44,7 @@ impl Parser {
         )
     }
 
-    fn comparison(&mut self) -> Box<Expr> {
+    fn comparison(&mut self) -> ParseResult<Box<Expr>> {
         binary!(
             self,
             self.addition(),
@@ -52,7 +57,7 @@ impl Parser {
         )
     }
 
-    fn addition(&mut self) -> Box<Expr> {
+    fn addition(&mut self) -> ParseResult<Box<Expr>> {
         binary!(
             self,
             self.multiplication(),
@@ -60,20 +65,20 @@ impl Parser {
         )
     }
 
-    fn multiplication(&mut self) -> Box<Expr> {
+    fn multiplication(&mut self) -> ParseResult<Box<Expr>> {
         binary!(self, self.unary(), &[TokenType::SLASH, TokenType::STAR])
     }
 
-    fn unary(&mut self) -> Box<Expr> {
+    fn unary(&mut self) -> ParseResult<Box<Expr>> {
         if self.match_token(&[TokenType::BANG, TokenType::MINUS]) {
             let operator = self.previous().clone();
             let right = self.unary();
-            return Box::new(Expr::Unary(operator, right));
+            return Ok(Box::new(Expr::Unary(operator, right?)));
         }
         self.primary()
     }
 
-    fn primary(&mut self) -> Box<Expr> {
+    fn primary(&mut self) -> ParseResult<Box<Expr>> {
         if self.match_token(&[
             TokenType::FALSE,
             TokenType::TRUE,
@@ -81,12 +86,23 @@ impl Parser {
             TokenType::NUMBER,
             TokenType::STRING,
         ]) {
-            return Box::new(Expr::Literal(self.previous().literal.clone()));
+            return Ok(Box::new(Expr::Literal(self.previous().literal.clone())));
         };
 
-        Box::new(Expr::Literal(Literal::Nil))
+        if self.match_token(&[TokenType::LEFT_PAREN]) {
+            let expr = self.expression()?;
+            self.consume_token(TokenType::RIGHT_PAREN, "Expect ')' after expression.")?;
+            return Ok(Box::new(Expr::Grouping(expr)));
+        }
 
-        // TODO: Need to write grouping code!!
+        Err(self.error(self.peek(), "Expect expression."))
+    }
+
+    fn consume_token(&mut self, token_type: TokenType, message: &str) -> ParseResult<&Token> {
+        if self.check(&token_type) {
+            return Ok(self.advance());
+        }
+        Err(self.error(self.peek(), message))
     }
 
     fn match_token(&mut self, token_types: &[TokenType]) -> bool {
@@ -124,5 +140,45 @@ impl Parser {
 
     fn previous(&self) -> &Token {
         self.tokens.get(self.current - 1).unwrap()
+    }
+
+    fn error(&self, token: &Token, message: &str) -> ParseError {
+        ParseError::new()
+    }
+
+    fn synchronize(&mut self) {
+        self.advance();
+
+        while !self.is_at_end() {
+            if self.previous().token_type == TokenType::SEMICOLON {
+                return;
+            }
+
+            match self.peek().token_type {
+                TokenType::CLASS |
+                TokenType::FUN |
+                TokenType::VAR |
+                TokenType::FOR |
+                TokenType::IF |
+                TokenType::WHILE |
+                TokenType::PRINT |
+                TokenType::RETURN => {
+                    return;
+                }
+                _ => {}
+            }
+            self.advance();
+        }
+    }
+}
+
+type ParseResult<T> = Result<T, ParseError>;
+
+
+pub struct ParseError;
+
+impl ParseError {
+    fn new() -> Self {
+        ParseError {}
     }
 }

@@ -1,8 +1,16 @@
-use parser::expr::{Expr, Visitor};
+use parser::expr::{Expr, Visitor, AST};
 
-struct AstPrinter;
+pub struct AstPrinter;
 
 impl AstPrinter {
+    pub fn new() -> Self {
+        AstPrinter {}
+    }
+
+    pub fn print_ast(&mut self, ast: &AST) -> String {
+        self.visit_expr(&ast.root)
+    }
+
     fn print_expr(&mut self, expr: &Box<Expr>) -> String {
         self.visit_expr(expr)
     }
