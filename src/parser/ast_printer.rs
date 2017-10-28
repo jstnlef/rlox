@@ -7,12 +7,8 @@ impl AstPrinter {
         AstPrinter {}
     }
 
-    pub fn print_ast(&mut self, ast: &AST) -> String {
+    pub fn print(&mut self, ast: &AST) -> String {
         self.visit_expr(&ast.root)
-    }
-
-    fn print_expr(&mut self, expr: &Box<Expr>) -> String {
-        self.visit_expr(expr)
     }
 
     fn parenthesize(&mut self, name: &str, exprs: &[&Box<Expr>]) -> String {

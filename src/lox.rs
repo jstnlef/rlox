@@ -44,7 +44,7 @@ impl Lox {
         let ast = parser.parse();
 
         match ast {
-            Ok(tree) => println!("{}", AstPrinter::new().print_ast(&tree)),
+            Ok(tree) => println!("{}", AstPrinter::new().print(&tree)),
             Err(e) => {}
         }
     }
