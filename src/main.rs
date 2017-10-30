@@ -4,6 +4,7 @@ extern crate lazy_static;
 mod lox;
 mod scanner;
 mod parser;
+mod interpreter;
 
 use std::env;
 use lox::Lox;

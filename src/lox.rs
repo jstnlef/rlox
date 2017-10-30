@@ -6,6 +6,7 @@ use std::process;
 use scanner::{Scanner, Token, TokenType};
 use parser::ast_printer::AstPrinter;
 use parser::parser::Parser;
+use interpreter::Interpreter;
 
 pub struct Lox {
     had_error: bool,
@@ -42,9 +43,10 @@ impl Lox {
         let tokens = scanner.scan_tokens();
         let mut parser = Parser::new(tokens);
         let ast = parser.parse();
+        let mut interpreter = Interpreter::new();
 
         match ast {
-            Ok(tree) => println!("{}", AstPrinter::new().print(&tree)),
+            Ok(tree) => interpreter.interpret(&tree),
             Err(e) => {}
         }
     }
