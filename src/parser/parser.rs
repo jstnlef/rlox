@@ -37,32 +37,24 @@ impl Parser {
     }
 
     fn equality(&mut self) -> ParseResult<Box<Expr>> {
-        binary!(
-            self,
-            self.comparison(),
-            &[TokenType::BANG_EQUAL, TokenType::EQUAL_EQUAL]
-        )
+        binary!(self,
+                self.comparison(),
+                &[TokenType::BANG_EQUAL, TokenType::EQUAL_EQUAL])
     }
 
     fn comparison(&mut self) -> ParseResult<Box<Expr>> {
-        binary!(
-            self,
-            self.addition(),
-            &[
-                TokenType::GREATER,
-                TokenType::GREATER_EQUAL,
-                TokenType::LESS,
-                TokenType::LESS_EQUAL
-            ]
-        )
+        binary!(self,
+                self.addition(),
+                &[TokenType::GREATER,
+                  TokenType::GREATER_EQUAL,
+                  TokenType::LESS,
+                  TokenType::LESS_EQUAL])
     }
 
     fn addition(&mut self) -> ParseResult<Box<Expr>> {
-        binary!(
-            self,
-            self.multiplication(),
-            &[TokenType::MINUS, TokenType::PLUS]
-        )
+        binary!(self,
+                self.multiplication(),
+                &[TokenType::MINUS, TokenType::PLUS])
     }
 
     fn multiplication(&mut self) -> ParseResult<Box<Expr>> {
@@ -79,13 +71,11 @@ impl Parser {
     }
 
     fn primary(&mut self) -> ParseResult<Box<Expr>> {
-        if self.match_token(&[
-            TokenType::FALSE,
-            TokenType::TRUE,
-            TokenType::NIL,
-            TokenType::NUMBER,
-            TokenType::STRING,
-        ]) {
+        if self.match_token(&[TokenType::FALSE,
+                              TokenType::TRUE,
+                              TokenType::NIL,
+                              TokenType::NUMBER,
+                              TokenType::STRING]) {
             return Ok(Box::new(Expr::Literal(self.previous().literal.clone())));
         };
 
@@ -143,7 +133,7 @@ impl Parser {
     }
 
     fn error(&self, token: &Token, message: &str) -> ParseError {
-        ParseError::new()
+        ParseError::new(token, message)
     }
 
     fn synchronize(&mut self) {
@@ -155,14 +145,8 @@ impl Parser {
             }
 
             match self.peek().token_type {
-                TokenType::CLASS |
-                TokenType::FUN |
-                TokenType::VAR |
-                TokenType::FOR |
-                TokenType::IF |
-                TokenType::WHILE |
-                TokenType::PRINT |
-                TokenType::RETURN => {
+                TokenType::CLASS | TokenType::FUN | TokenType::VAR | TokenType::FOR |
+                TokenType::IF | TokenType::WHILE | TokenType::PRINT | TokenType::RETURN => {
                     return;
                 }
                 _ => {}
@@ -175,10 +159,16 @@ impl Parser {
 type ParseResult<T> = Result<T, ParseError>;
 
 
-pub struct ParseError;
+pub struct ParseError {
+    pub token: Token,
+    pub message: String,
+}
 
 impl ParseError {
-    fn new() -> Self {
-        ParseError {}
+    fn new(token: &Token, message: &str) -> Self {
+        ParseError {
+            token: token.to_owned(),
+            message: message.to_owned(),
+        }
     }
 }

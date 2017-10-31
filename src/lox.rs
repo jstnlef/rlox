@@ -4,17 +4,20 @@ use std::fs::File;
 use std::process;
 
 use scanner::{Scanner, Token, TokenType};
-use parser::ast_printer::AstPrinter;
 use parser::parser::Parser;
-use interpreter::Interpreter;
+use interpreter::{Interpreter, RuntimeError};
 
 pub struct Lox {
     had_error: bool,
+    had_runtime_error: bool,
 }
 
 impl Lox {
     pub fn new() -> Self {
-        Lox { had_error: false }
+        Lox {
+            had_error: false,
+            had_runtime_error: false,
+        }
     }
 
     pub fn run_file(&mut self, file_name: &str) {
@@ -24,6 +27,9 @@ impl Lox {
         self.run(buffer);
         if self.had_error {
             process::exit(65);
+        }
+        if self.had_runtime_error {
+            process::exit(70);
         }
     }
 
@@ -35,6 +41,7 @@ impl Lox {
             io::stdin().read_line(&mut input).unwrap();
             self.run(input);
             self.had_error = false;
+            self.had_runtime_error = false;
         }
     }
 
@@ -46,17 +53,27 @@ impl Lox {
         let mut interpreter = Interpreter::new();
 
         match ast {
-            Ok(tree) => interpreter.interpret(&tree),
-            Err(e) => {}
+            Ok(tree) => {
+                match interpreter.interpret(&tree) {
+                    Ok(literal) => println!("{}", literal),
+                    Err(err) => self.runtime_error(err),
+                }
+            }
+            Err(e) => self.token_error(e.token, &e.message),
         }
     }
 
-    fn token_error(&mut self, token: &Token, message: &str) {
+    fn token_error(&mut self, token: Token, message: &str) {
         if token.token_type == TokenType::EOF {
             self.report(token.line, " at end", message);
         } else {
             self.report(token.line, &format!(" at '{}'", token.lexeme), message);
         }
+    }
+
+    fn runtime_error(&mut self, err: RuntimeError) {
+        println!("{}\n[line {}]", err.message, err.token.line);
+        self.had_runtime_error = true;
     }
 
     fn line_error(&mut self, line: i32, message: &str) {

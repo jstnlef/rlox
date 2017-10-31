@@ -8,12 +8,8 @@ impl Interpreter {
         Interpreter {}
     }
 
-    pub fn interpret(&mut self, ast: &AST) {
-        let val = self.evaluate(&ast.root);
-        match val {
-            Ok(literal) => println!("{}", literal),
-            Err(err) => {}
-        }
+    pub fn interpret(&mut self, ast: &AST) -> RuntimeResult<Literal> {
+        self.evaluate(&ast.root)
     }
 
     fn evaluate(&mut self, expr: &Box<Expr>) -> RuntimeResult<Literal> {
@@ -68,8 +64,8 @@ impl Visitor<RuntimeResult<Literal>> for Interpreter {
 type RuntimeResult<T> = Result<T, RuntimeError>;
 
 pub struct RuntimeError {
-    token: Token,
-    message: String,
+    pub token: Token,
+    pub message: String,
 }
 
 impl RuntimeError {
