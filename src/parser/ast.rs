@@ -1,7 +1,7 @@
 use scanner::{Literal, Token};
 
 pub struct AST {
-    pub root: Box<Expr>,
+    pub root: Vec<Box<Stmt>>,
 }
 
 pub enum Expr {
@@ -11,6 +11,15 @@ pub enum Expr {
     Grouping(Box<Expr>),
 }
 
-pub trait Visitor<E> {
+pub trait ExprVisitor<E> {
     fn visit_expr(&mut self, expr: &Box<Expr>) -> E;
+}
+
+pub enum Stmt {
+    Expression(Box<Expr>),
+    Print(Box<Expr>),
+}
+
+pub trait StmtVisitor<E> {
+    fn visit_stmt(&mut self, stmt: &Box<Stmt>) -> E;
 }

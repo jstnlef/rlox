@@ -1,4 +1,4 @@
-use parser::expr::{Expr, Visitor, AST};
+use parser::ast::{Expr, ExprVisitor};
 
 pub struct AstPrinter;
 
@@ -7,9 +7,9 @@ impl AstPrinter {
         AstPrinter {}
     }
 
-    pub fn print(&mut self, ast: &AST) -> String {
-        self.visit_expr(&ast.root)
-    }
+    // pub fn print(&mut self, ast: &AST) -> String {
+    //     self.visit_expr(&ast.root)
+    // }
 
     fn parenthesize(&mut self, name: &str, exprs: &[&Box<Expr>]) -> String {
         let mut expr_str = String::new();
@@ -21,7 +21,7 @@ impl AstPrinter {
     }
 }
 
-impl Visitor<String> for AstPrinter {
+impl ExprVisitor<String> for AstPrinter {
     fn visit_expr(&mut self, expr: &Box<Expr>) -> String {
         match **expr {
             Expr::Literal(ref literal) => literal.to_string(),

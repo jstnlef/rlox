@@ -1,5 +1,5 @@
 use scanner::{Token, TokenType};
-use parser::expr::{Expr, AST};
+use parser::ast::{Expr, AST, Stmt};
 
 macro_rules! binary {
     ($self:expr, $func:expr, $token_types:expr) => {{
@@ -28,8 +28,30 @@ impl Parser {
     }
 
     pub fn parse(&mut self) -> ParseResult<AST> {
+        let mut statements = Vec::new();
+        while !self.is_at_end() {
+            statements.push(self.statement()?);
+        }
+        Ok(AST { root: statements })
+    }
+
+    fn statement(&mut self) -> ParseResult<Box<Stmt>> {
+        if self.match_token(&[TokenType::PRINT]) {
+            return self.print_statement();
+        }
+        return self.expression_statement();
+    }
+
+    fn print_statement(&mut self) -> ParseResult<Box<Stmt>> {
+        let value = self.expression()?;
+        self.consume_token(TokenType::SEMICOLON, "Expect ';' after value.")?;
+        Ok(Box::new(Stmt::Print(value)))
+    }
+
+    fn expression_statement(&mut self) -> ParseResult<Box<Stmt>> {
         let expr = self.expression()?;
-        Ok(AST { root: expr })
+        self.consume_token(TokenType::SEMICOLON, "Expect ';' after expression.")?;
+        Ok(Box::new(Stmt::Expression(expr)))
     }
 
     fn expression(&mut self) -> ParseResult<Box<Expr>> {

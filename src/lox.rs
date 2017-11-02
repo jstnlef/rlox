@@ -54,9 +54,8 @@ impl Lox {
 
         match ast {
             Ok(tree) => {
-                match interpreter.interpret(&tree) {
-                    Ok(literal) => println!("{}", literal),
-                    Err(err) => self.runtime_error(err),
+                if let Err(err) = interpreter.interpret(&tree) {
+                    self.runtime_error(err)
                 }
             }
             Err(e) => self.token_error(e.token, &e.message),

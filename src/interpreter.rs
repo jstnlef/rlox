@@ -1,4 +1,4 @@
-use parser::expr::{Expr, Visitor, AST};
+use parser::ast::{Expr, Stmt, ExprVisitor, StmtVisitor, AST};
 use scanner::{Literal, Token, TokenType};
 
 pub struct Interpreter;
@@ -8,8 +8,15 @@ impl Interpreter {
         Interpreter {}
     }
 
-    pub fn interpret(&mut self, ast: &AST) -> RuntimeResult<Literal> {
-        self.evaluate(&ast.root)
+    pub fn interpret(&mut self, ast: &AST) -> RuntimeResult<()> {
+        for statement in ast.root.iter() {
+            self.execute(statement)?;
+        }
+        Ok(())
+    }
+
+    fn execute(&mut self, stmt: &Box<Stmt>) -> RuntimeResult<()> {
+        self.visit_stmt(stmt)
     }
 
     fn evaluate(&mut self, expr: &Box<Expr>) -> RuntimeResult<Literal> {
@@ -17,7 +24,23 @@ impl Interpreter {
     }
 }
 
-impl Visitor<RuntimeResult<Literal>> for Interpreter {
+impl StmtVisitor<RuntimeResult<()>> for Interpreter {
+    fn visit_stmt(&mut self, stmt: &Box<Stmt>) -> RuntimeResult<()> {
+        match **stmt {
+            Stmt::Expression(ref expr) => {
+                self.evaluate(&expr)?;
+                Ok(())
+            }
+            Stmt::Print(ref expr) => {
+                let value = self.evaluate(&expr)?;
+                println!("{}", value);
+                Ok(())
+            }
+        }
+    }
+}
+
+impl ExprVisitor<RuntimeResult<Literal>> for Interpreter {
     fn visit_expr(&mut self, expr: &Box<Expr>) -> RuntimeResult<Literal> {
         match **expr {
             Expr::Literal(ref literal) => Ok(literal.clone()),
