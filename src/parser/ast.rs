@@ -9,6 +9,7 @@ pub enum Expr {
     Binary(Box<Expr>, Token, Box<Expr>),
     Unary(Token, Box<Expr>),
     Grouping(Box<Expr>),
+    Variable(Token),
 }
 
 pub trait ExprVisitor<E> {
@@ -18,6 +19,7 @@ pub trait ExprVisitor<E> {
 pub enum Stmt {
     Expression(Box<Expr>),
     Print(Box<Expr>),
+    Var(Token, Box<Expr>),
 }
 
 pub trait StmtVisitor<E> {

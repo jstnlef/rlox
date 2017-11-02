@@ -49,10 +49,12 @@ if __name__ == '__main__':
             ('Literal', ['Literal']),
             ('Binary', ['Box<Expr>', 'Token', 'Box<Expr>']),
             ('Unary', ['Token', 'Box<Expr>']),
-            ('Grouping', ['Box<Expr>'])
+            ('Grouping', ['Box<Expr>']),
+            ('Variable', ['Token'])
         ]),
         ('stmt', [
             ('Expression', ['Box<Expr>']),
-            ('Print', ['Box<Expr>'])
+            ('Print', ['Box<Expr>']),
+            ('Var', ['Token', 'Box<Expr>'])
         ])
     ])

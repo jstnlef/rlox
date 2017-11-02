@@ -1,4 +1,4 @@
-use scanner::{Token, TokenType};
+use scanner::{Token, TokenType, Literal};
 use parser::ast::{Expr, AST, Stmt};
 
 macro_rules! binary {
@@ -30,16 +30,37 @@ impl Parser {
     pub fn parse(&mut self) -> ParseResult<AST> {
         let mut statements = Vec::new();
         while !self.is_at_end() {
-            statements.push(self.statement()?);
+            statements.push(self.declaration()?);
         }
         Ok(AST { root: statements })
+    }
+
+    fn declaration(&mut self) -> ParseResult<Box<Stmt>> {
+        // TODO: Need to do synchronization here....
+        if self.match_token(&[TokenType::VAR]) {
+            return self.var_declaration();
+        }
+        self.statement()
+    }
+
+    fn var_declaration(&mut self) -> ParseResult<Box<Stmt>> {
+        let name = self.consume_token(TokenType::IDENTIFIER, "Expect variable name.")?
+            .clone();
+
+        let mut initializer = Box::new(Expr::Literal(Literal::Nil));
+        if self.match_token(&[TokenType::EQUAL]) {
+            initializer = self.expression()?;
+        }
+
+        self.consume_token(TokenType::SEMICOLON, "Expect ';' after value.")?;
+        Ok(Box::new(Stmt::Var(name.clone(), initializer)))
     }
 
     fn statement(&mut self) -> ParseResult<Box<Stmt>> {
         if self.match_token(&[TokenType::PRINT]) {
             return self.print_statement();
         }
-        return self.expression_statement();
+        self.expression_statement()
     }
 
     fn print_statement(&mut self) -> ParseResult<Box<Stmt>> {
@@ -100,6 +121,10 @@ impl Parser {
                               TokenType::STRING]) {
             return Ok(Box::new(Expr::Literal(self.previous().literal.clone())));
         };
+
+        if self.match_token(&[TokenType::IDENTIFIER]) {
+            return Ok(Box::new(Expr::Variable(self.previous().clone())));
+        }
 
         if self.match_token(&[TokenType::LEFT_PAREN]) {
             let expr = self.expression()?;

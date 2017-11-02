@@ -1,11 +1,14 @@
+use environment::Environment;
 use parser::ast::{Expr, Stmt, ExprVisitor, StmtVisitor, AST};
 use scanner::{Literal, Token, TokenType};
 
-pub struct Interpreter;
+pub struct Interpreter {
+    environment: Environment,
+}
 
 impl Interpreter {
     pub fn new() -> Self {
-        Interpreter {}
+        Interpreter { environment: Environment::new() }
     }
 
     pub fn interpret(&mut self, ast: &AST) -> RuntimeResult<()> {
@@ -28,12 +31,17 @@ impl StmtVisitor<RuntimeResult<()>> for Interpreter {
     fn visit_stmt(&mut self, stmt: &Box<Stmt>) -> RuntimeResult<()> {
         match **stmt {
             Stmt::Expression(ref expr) => {
-                self.evaluate(&expr)?;
+                self.evaluate(expr)?;
                 Ok(())
             }
             Stmt::Print(ref expr) => {
-                let value = self.evaluate(&expr)?;
+                let value = self.evaluate(expr)?;
                 println!("{}", value);
+                Ok(())
+            }
+            Stmt::Var(ref name, ref initializer) => {
+                let value = self.evaluate(initializer)?;
+                self.environment.define(&name.lexeme, &value);
                 Ok(())
             }
         }
@@ -80,11 +88,13 @@ impl ExprVisitor<RuntimeResult<Literal>> for Interpreter {
             }
 
             Expr::Grouping(ref e) => self.evaluate(e),
+
+            Expr::Variable(ref name) => self.environment.get(name),
         }
     }
 }
 
-type RuntimeResult<T> = Result<T, RuntimeError>;
+pub type RuntimeResult<T> = Result<T, RuntimeError>;
 
 pub struct RuntimeError {
     pub token: Token,
@@ -92,7 +102,7 @@ pub struct RuntimeError {
 }
 
 impl RuntimeError {
-    fn new(token: &Token, message: &str) -> Self {
+    pub fn new(token: &Token, message: &str) -> Self {
         RuntimeError {
             token: token.clone(),
             message: message.to_owned(),
