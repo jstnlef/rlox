@@ -36,11 +36,18 @@ impl Parser {
     }
 
     fn declaration(&mut self) -> ParseResult<Box<Stmt>> {
-        // TODO: Need to do synchronization here....
-        if self.match_token(&[TokenType::VAR]) {
-            return self.var_declaration();
+        let result = if self.match_token(&[TokenType::VAR]) {
+            self.var_declaration()
+        } else {
+            self.statement()
+        };
+        match result {
+            Ok(_) => result,
+            Err(_) => {
+                self.synchronize();
+                result
+            }
         }
-        self.statement()
     }
 
     fn var_declaration(&mut self) -> ParseResult<Box<Stmt>> {
