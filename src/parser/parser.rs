@@ -1,5 +1,5 @@
-use scanner::{Token, TokenType, Literal};
-use parser::ast::{Expr, AST, Stmt};
+use scanner::{Literal, Token, TokenType};
+use parser::ast::{Expr, Stmt, AST};
 
 macro_rules! binary {
     ($self:expr, $func:expr, $token_types:expr) => {{
@@ -59,7 +59,10 @@ impl Parser {
             initializer = self.expression()?;
         }
 
-        self.consume_token(TokenType::SEMICOLON, "Expect ';' after value.")?;
+        self.consume_token(
+            TokenType::SEMICOLON,
+            "Expect ';' after value.",
+        )?;
         Ok(Box::new(Stmt::Var(name.clone(), initializer)))
     }
 
@@ -72,13 +75,19 @@ impl Parser {
 
     fn print_statement(&mut self) -> ParseResult<Box<Stmt>> {
         let value = self.expression()?;
-        self.consume_token(TokenType::SEMICOLON, "Expect ';' after value.")?;
+        self.consume_token(
+            TokenType::SEMICOLON,
+            "Expect ';' after value.",
+        )?;
         Ok(Box::new(Stmt::Print(value)))
     }
 
     fn expression_statement(&mut self) -> ParseResult<Box<Stmt>> {
         let expr = self.expression()?;
-        self.consume_token(TokenType::SEMICOLON, "Expect ';' after expression.")?;
+        self.consume_token(
+            TokenType::SEMICOLON,
+            "Expect ';' after expression.",
+        )?;
         Ok(Box::new(Stmt::Expression(expr)))
     }
 
@@ -87,24 +96,32 @@ impl Parser {
     }
 
     fn equality(&mut self) -> ParseResult<Box<Expr>> {
-        binary!(self,
-                self.comparison(),
-                &[TokenType::BANG_EQUAL, TokenType::EQUAL_EQUAL])
+        binary!(
+            self,
+            self.comparison(),
+            &[TokenType::BANG_EQUAL, TokenType::EQUAL_EQUAL]
+        )
     }
 
     fn comparison(&mut self) -> ParseResult<Box<Expr>> {
-        binary!(self,
-                self.addition(),
-                &[TokenType::GREATER,
-                  TokenType::GREATER_EQUAL,
-                  TokenType::LESS,
-                  TokenType::LESS_EQUAL])
+        binary!(
+            self,
+            self.addition(),
+            &[
+                TokenType::GREATER,
+                TokenType::GREATER_EQUAL,
+                TokenType::LESS,
+                TokenType::LESS_EQUAL,
+            ]
+        )
     }
 
     fn addition(&mut self) -> ParseResult<Box<Expr>> {
-        binary!(self,
-                self.multiplication(),
-                &[TokenType::MINUS, TokenType::PLUS])
+        binary!(
+            self,
+            self.multiplication(),
+            &[TokenType::MINUS, TokenType::PLUS]
+        )
     }
 
     fn multiplication(&mut self) -> ParseResult<Box<Expr>> {
@@ -121,11 +138,16 @@ impl Parser {
     }
 
     fn primary(&mut self) -> ParseResult<Box<Expr>> {
-        if self.match_token(&[TokenType::FALSE,
-                              TokenType::TRUE,
-                              TokenType::NIL,
-                              TokenType::NUMBER,
-                              TokenType::STRING]) {
+        if self.match_token(
+            &[
+                TokenType::FALSE,
+                TokenType::TRUE,
+                TokenType::NIL,
+                TokenType::NUMBER,
+                TokenType::STRING,
+            ],
+        )
+        {
             return Ok(Box::new(Expr::Literal(self.previous().literal.clone())));
         };
 
@@ -135,7 +157,10 @@ impl Parser {
 
         if self.match_token(&[TokenType::LEFT_PAREN]) {
             let expr = self.expression()?;
-            self.consume_token(TokenType::RIGHT_PAREN, "Expect ')' after expression.")?;
+            self.consume_token(
+                TokenType::RIGHT_PAREN,
+                "Expect ')' after expression.",
+            )?;
             return Ok(Box::new(Expr::Grouping(expr)));
         }
 

@@ -24,14 +24,20 @@ impl Scanner {
         while !self.is_at_end() {
             self.start = self.current;
             match self.scan_token() {
-                Ok(token) => if !token.token_type.is_ignored() {
-                    self.tokens.push(token);
-                },
+                Ok(token) => {
+                    if !token.token_type.is_ignored() {
+                        self.tokens.push(token);
+                    }
+                }
                 Err(_) => {}
             }
         }
-        self.tokens
-            .push(Token::new(TokenType::EOF, "", Literal::Nil, self.line));
+        self.tokens.push(Token::new(
+            TokenType::EOF,
+            "",
+            Literal::Nil,
+            self.line,
+        ));
         self.tokens.to_vec()
     }
 
@@ -53,38 +59,48 @@ impl Scanner {
             ';' => Ok(self.create_token(TokenType::SEMICOLON)),
             '*' => Ok(self.create_token(TokenType::STAR)),
             // TODO: A bit of duplication here. Should refactor at some point.
-            '!' => if self.match_char('=') {
-                self.advance();
-                Ok(self.create_token(TokenType::BANG_EQUAL))
-            } else {
-                Ok(self.create_token(TokenType::BANG))
-            },
-            '=' => if self.match_char('=') {
-                self.advance();
-                Ok(self.create_token(TokenType::EQUAL_EQUAL))
-            } else {
-                Ok(self.create_token(TokenType::EQUAL))
-            },
-            '<' => if self.match_char('=') {
-                self.advance();
-                Ok(self.create_token(TokenType::LESS_EQUAL))
-            } else {
-                Ok(self.create_token(TokenType::LESS))
-            },
-            '>' => if self.match_char('=') {
-                self.advance();
-                Ok(self.create_token(TokenType::GREATER_EQUAL))
-            } else {
-                Ok(self.create_token(TokenType::GREATER))
-            },
-            '/' => if self.match_char('/') {
-                while self.peek() != '\n' && !self.is_at_end() {
+            '!' => {
+                if self.match_char('=') {
                     self.advance();
+                    Ok(self.create_token(TokenType::BANG_EQUAL))
+                } else {
+                    Ok(self.create_token(TokenType::BANG))
                 }
-                Ok(self.create_token(TokenType::COMMENT))
-            } else {
-                Ok(self.create_token(TokenType::SLASH))
-            },
+            }
+            '=' => {
+                if self.match_char('=') {
+                    self.advance();
+                    Ok(self.create_token(TokenType::EQUAL_EQUAL))
+                } else {
+                    Ok(self.create_token(TokenType::EQUAL))
+                }
+            }
+            '<' => {
+                if self.match_char('=') {
+                    self.advance();
+                    Ok(self.create_token(TokenType::LESS_EQUAL))
+                } else {
+                    Ok(self.create_token(TokenType::LESS))
+                }
+            }
+            '>' => {
+                if self.match_char('=') {
+                    self.advance();
+                    Ok(self.create_token(TokenType::GREATER_EQUAL))
+                } else {
+                    Ok(self.create_token(TokenType::GREATER))
+                }
+            }
+            '/' => {
+                if self.match_char('/') {
+                    while self.peek() != '\n' && !self.is_at_end() {
+                        self.advance();
+                    }
+                    Ok(self.create_token(TokenType::COMMENT))
+                } else {
+                    Ok(self.create_token(TokenType::SLASH))
+                }
+            }
             ' ' | '\r' | '\t' => Ok(self.create_token(TokenType::WHITESPACE)),
             '\n' => {
                 self.line += 1;
@@ -114,7 +130,10 @@ impl Scanner {
 
         // Trim the surrounding quotes.
         let value = &self.source[self.start + 1..self.current - 1];
-        Ok(self.create_token_with_literal(TokenType::STRING, Literal::String(value.to_owned())))
+        Ok(self.create_token_with_literal(
+            TokenType::STRING,
+            Literal::String(value.to_owned()),
+        ))
     }
 
     fn scan_number(&mut self) -> ScanResult<Token> {

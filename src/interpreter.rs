@@ -1,5 +1,5 @@
 use environment::Environment;
-use parser::ast::{Expr, Stmt, ExprVisitor, StmtVisitor, AST};
+use parser::ast::{Expr, ExprVisitor, Stmt, StmtVisitor, AST};
 use scanner::{Literal, Token, TokenType};
 
 pub struct Interpreter {
@@ -68,7 +68,10 @@ impl ExprVisitor<RuntimeResult<Literal>> for Interpreter {
                     TokenType::LESS_EQUAL => less_equal(&left, &right, &token),
                     TokenType::BANG_EQUAL => Ok(Literal::Boolean(!is_equal(&left, &right))),
                     TokenType::EQUAL_EQUAL => Ok(Literal::Boolean(is_equal(&left, &right))),
-                    _ => Err(RuntimeError::new(token, "Unrecognized token for Binary operation.")),
+                    _ => Err(RuntimeError::new(
+                        token,
+                        "Unrecognized token for Binary operation.",
+                    )),
                 }
             }
 
@@ -82,9 +85,11 @@ impl ExprVisitor<RuntimeResult<Literal>> for Interpreter {
                             _ => Err(RuntimeError::new(token, "Operand must be a number.")),
                         }
                     }
-                    _ => Err(RuntimeError::new(token, "Unrecognized token for Unary operation.")),
+                    _ => Err(RuntimeError::new(
+                        token,
+                        "Unrecognized token for Unary operation.",
+                    )),
                 }
-
             }
 
             Expr::Grouping(ref e) => self.evaluate(e),
@@ -122,10 +127,11 @@ fn is_equal(left: &Literal, right: &Literal) -> bool {
     left == right
 }
 
-fn get_number_operands(left: &Literal,
-                       right: &Literal,
-                       token: &Token)
-                       -> RuntimeResult<(f64, f64)> {
+fn get_number_operands(
+    left: &Literal,
+    right: &Literal,
+    token: &Token,
+) -> RuntimeResult<(f64, f64)> {
     match (left, right) {
         (&Literal::Number(l), &Literal::Number(r)) => Ok((l, r)),
         _ => Err(RuntimeError::new(token, "Operands must be numbers.")),
@@ -157,7 +163,10 @@ fn plus(left: &Literal, right: &Literal, token: &Token) -> RuntimeResult<Literal
         (&Literal::String(ref l), &Literal::String(ref r)) => {
             Ok(Literal::String(format!("{}{}", l, r)))
         }
-        _ => Err(RuntimeError::new(token, "Operands must be two numbers or two strings.")),
+        _ => Err(RuntimeError::new(
+            token,
+            "Operands must be two numbers or two strings.",
+        )),
     }
 }
 

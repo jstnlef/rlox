@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use scanner::{Token, Literal};
+use scanner::{Literal, Token};
 use interpreter::{RuntimeError, RuntimeResult};
 
 pub struct Environment {
@@ -18,7 +18,10 @@ impl Environment {
     pub fn get(&self, name: &Token) -> RuntimeResult<Literal> {
         match self.values.get(&name.lexeme) {
             Some(literal) => Ok(literal.clone()),
-            None => Err(RuntimeError::new(name, &format!("Undefined variable '{}'.", name.lexeme))),
+            None => Err(RuntimeError::new(
+                name,
+                &format!("Undefined variable '{}'.", name.lexeme),
+            )),
         }
     }
 }
