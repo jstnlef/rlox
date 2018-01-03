@@ -12,7 +12,7 @@ pub struct Scanner {
 impl Scanner {
     pub fn new(source: String) -> Self {
         Scanner {
-            source: source,
+            source,
             tokens: Vec::new(),
             start: 0,
             current: 0,
@@ -220,10 +220,10 @@ pub struct Token {
 impl Token {
     pub fn new(token_type: TokenType, lexeme: &str, literal: Literal, line: i32) -> Self {
         Token {
-            token_type: token_type,
+            token_type,
             lexeme: lexeme.to_owned(),
-            literal: literal,
-            line: line,
+            literal,
+            line,
         }
     }
 }
@@ -321,7 +321,7 @@ pub struct ScanError {
 impl ScanError {
     fn new(line: i32, message: &str) -> Self {
         ScanError {
-            line: line,
+            line,
             message: message.to_owned(),
         }
     }

@@ -22,7 +22,7 @@ pub struct Parser {
 impl Parser {
     pub fn new(tokens: Vec<Token>) -> Self {
         Parser {
-            tokens: tokens,
+            tokens,
             current: 0,
         }
     }

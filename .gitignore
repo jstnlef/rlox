@@ -11,3 +11,6 @@ Cargo.lock
 
 # VS code config
 .vscode
+
+# IntelliJ config
+.idea
