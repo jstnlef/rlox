@@ -95,6 +95,12 @@ impl ExprVisitor<RuntimeResult<Literal>> for Interpreter {
             Expr::Grouping(ref e) => self.evaluate(e),
 
             Expr::Variable(ref name) => self.environment.get(name),
+
+            Expr::Assign(ref name, ref value) => {
+                let value = self.evaluate(value)?;
+                self.environment.assign(name, &value);
+                Ok(value)
+            }
         }
     }
 }

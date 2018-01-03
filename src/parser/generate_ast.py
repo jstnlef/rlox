@@ -46,6 +46,7 @@ if __name__ == '__main__':
 
     generate_AST(args.output_dir, [
         ('expr', [
+            ('Assign', ['Token', 'Box<Expr>']),
             ('Literal', ['Literal']),
             ('Binary', ['Box<Expr>', 'Token', 'Box<Expr>']),
             ('Unary', ['Token', 'Box<Expr>']),

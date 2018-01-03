@@ -5,6 +5,7 @@ pub struct AST {
 }
 
 pub enum Expr {
+    Assign(Token, Box<Expr>),
     Literal(Literal),
     Binary(Box<Expr>, Token, Box<Expr>),
     Unary(Token, Box<Expr>),

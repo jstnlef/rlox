@@ -15,6 +15,18 @@ impl Environment {
         self.values.insert(name.to_owned(), value.clone());
     }
 
+    pub fn assign(&mut self, name: &Token, value: &Literal) -> RuntimeResult<()> {
+        if self.values.contains_key(&name.lexeme) {
+            self.values.insert(name.lexeme.to_owned(), value.clone());
+            Ok(())
+        } else {
+            Err(RuntimeError::new(
+                name,
+                &format!("Undefined variable '{}'.", name.lexeme)
+            ))
+        }
+    }
+
     pub fn get(&self, name: &Token) -> RuntimeResult<Literal> {
         match self.values.get(&name.lexeme) {
             Some(literal) => Ok(literal.clone()),
