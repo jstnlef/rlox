@@ -18,6 +18,7 @@ pub trait ExprVisitor<E> {
 }
 
 pub enum Stmt {
+    Block(Vec<Box<Stmt>>),
     Expression(Box<Expr>),
     Print(Box<Expr>),
     Var(Token, Box<Expr>),

@@ -28,7 +28,7 @@ def write_enum(file, base_name, types):
 
 def write_visitor(file, base_name):
     file.write('\n')
-    file.write(f'pub trait {base_name.capitalize()}Visitor<E> {{\n')
+    file.write(f"pub trait {base_name.capitalize()}Visitor<E> {{\n")
     file.write(
         f'    fn visit_{base_name}(&mut self, {base_name.lower()}: &Box<{base_name.capitalize()}>) -> E;\n')
     file.write('}\n')
@@ -54,6 +54,7 @@ if __name__ == '__main__':
             ('Variable', ['Token'])
         ]),
         ('stmt', [
+            ('Block', ['Vec<Box<Stmt>>']),
             ('Expression', ['Box<Expr>']),
             ('Print', ['Box<Expr>']),
             ('Var', ['Token', 'Box<Expr>'])

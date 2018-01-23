@@ -1,14 +1,18 @@
+use std::rc::Rc;
+
 use environment::Environment;
 use parser::ast::{Expr, ExprVisitor, Stmt, StmtVisitor, AST};
 use scanner::{Literal, Token, TokenType};
 
 pub struct Interpreter {
-    environment: Environment,
+    environment: Rc<Environment>,
 }
 
 impl Interpreter {
     pub fn new() -> Self {
-        Interpreter { environment: Environment::new() }
+        Interpreter {
+            environment: Rc::new(Environment::new())
+        }
     }
 
     pub fn interpret(&mut self, ast: &AST) -> RuntimeResult<()> {
@@ -25,11 +29,26 @@ impl Interpreter {
     fn evaluate(&mut self, expr: &Box<Expr>) -> RuntimeResult<Literal> {
         self.visit_expr(expr)
     }
+
+    fn execute_block(&mut self, statements: &[Box<Stmt>], env: Environment) -> RuntimeResult<()> {
+        let previous = Rc::clone(&self.environment);
+        self.environment = Rc::new(env);
+        for statement in statements {
+            self.execute(statement)?;
+        }
+        self.environment = previous;
+        Ok(())
+    }
 }
 
 impl StmtVisitor<RuntimeResult<()>> for Interpreter {
     fn visit_stmt(&mut self, stmt: &Box<Stmt>) -> RuntimeResult<()> {
         match **stmt {
+            Stmt::Block(ref statements) => {
+                let enclosed_env = Environment::new_enclosed(Rc::clone(&self.environment));
+                self.execute_block(statements, enclosed_env)?;
+                Ok(())
+            }
             Stmt::Expression(ref expr) => {
                 self.evaluate(expr)?;
                 Ok(())
@@ -41,7 +60,7 @@ impl StmtVisitor<RuntimeResult<()>> for Interpreter {
             }
             Stmt::Var(ref name, ref initializer) => {
                 let value = self.evaluate(initializer)?;
-                self.environment.define(&name.lexeme, &value);
+                Rc::clone(&self.environment).define(&name.lexeme, &value);
                 Ok(())
             }
         }
@@ -98,7 +117,7 @@ impl ExprVisitor<RuntimeResult<Literal>> for Interpreter {
 
             Expr::Assign(ref name, ref value) => {
                 let value = self.evaluate(value)?;
-                self.environment.assign(name, &value);
+                self.environment.assign(name, &value)?;
                 Ok(value)
             }
         }

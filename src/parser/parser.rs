@@ -51,8 +51,7 @@ impl Parser {
     }
 
     fn var_declaration(&mut self) -> ParseResult<Box<Stmt>> {
-        let name = self.consume_token(TokenType::IDENTIFIER, "Expect variable name.")?
-            .clone();
+        let name = self.consume_token(TokenType::IDENTIFIER, "Expect variable name.")?.clone();
 
         let mut initializer = Box::new(Expr::Literal(Literal::Nil));
         if self.match_token(&[TokenType::EQUAL]) {
@@ -70,6 +69,9 @@ impl Parser {
         if self.match_token(&[TokenType::PRINT]) {
             return self.print_statement();
         }
+        if self.match_token(&[TokenType::LEFT_BRACE]) {
+            return Ok(Box::new(Stmt::Block(self.block()?)));
+        }
         self.expression_statement()
     }
 
@@ -80,6 +82,15 @@ impl Parser {
             "Expect ';' after value.",
         )?;
         Ok(Box::new(Stmt::Print(value)))
+    }
+
+    fn block(&mut self) -> ParseResult<Vec<Box<Stmt>>> {
+        let mut statements = Vec::new();
+        while !self.check(&TokenType::RIGHT_BRACE) && !self.is_at_end() {
+            statements.push(self.declaration()?);
+        }
+        self.consume_token(TokenType::RIGHT_BRACE, "Expect '}' after block.")?;
+        Ok(statements)
     }
 
     fn expression_statement(&mut self) -> ParseResult<Box<Stmt>> {
@@ -102,7 +113,7 @@ impl Parser {
             let value = self.assignment()?;
 
             if let Expr::Variable(name) = *expr {
-                return Ok(Box::new(Expr::Assign(name, value)))
+                return Ok(Box::new(Expr::Assign(name, value)));
             }
 
             return Err(self.error(&equals, "Invalid assignment target."));
@@ -162,9 +173,9 @@ impl Parser {
                 TokenType::STRING,
             ],
         )
-        {
-            return Ok(Box::new(Expr::Literal(self.previous().literal.clone())));
-        };
+            {
+                return Ok(Box::new(Expr::Literal(self.previous().literal.clone())));
+            };
 
         if self.match_token(&[TokenType::IDENTIFIER]) {
             return Ok(Box::new(Expr::Variable(self.previous().clone())));

@@ -1,39 +1,65 @@
+use std::cell::RefCell;
 use std::collections::HashMap;
+use std::rc::Rc;
+
 use scanner::{Literal, Token};
 use interpreter::{RuntimeError, RuntimeResult};
 
 pub struct Environment {
-    values: HashMap<String, Literal>,
+    enclosing: Option<Rc<Environment>>,
+    values: RefCell<HashMap<String, Literal>>,
 }
 
 impl Environment {
     pub fn new() -> Self {
-        Environment { values: HashMap::new() }
+        Self {
+            enclosing: None,
+            values: RefCell::new(HashMap::new()),
+        }
     }
 
-    pub fn define(&mut self, name: &str, value: &Literal) {
-        self.values.insert(name.to_owned(), value.clone());
+    pub fn new_enclosed(enclosing: Rc<Self>) -> Self {
+        Self {
+            enclosing: Some(enclosing),
+            values: RefCell::new(HashMap::new()),
+        }
     }
 
-    pub fn assign(&mut self, name: &Token, value: &Literal) -> RuntimeResult<()> {
-        if self.values.contains_key(&name.lexeme) {
-            self.values.insert(name.lexeme.to_owned(), value.clone());
+    pub fn define(&self, name: &str, value: &Literal) {
+        self.values.borrow_mut().insert(name.to_owned(), value.clone());
+    }
+
+    pub fn assign(&self, name: &Token, value: &Literal) -> RuntimeResult<()> {
+        let mut values = self.values.borrow_mut();
+
+        if values.contains_key(&name.lexeme) {
+            values.insert(name.lexeme.to_owned(), value.clone());
             Ok(())
         } else {
-            Err(RuntimeError::new(
-                name,
-                &format!("Undefined variable '{}'.", name.lexeme)
-            ))
+            if let Some(ref enclosing_env) = self.enclosing {
+                enclosing_env.assign(name, value)
+            } else {
+                Err(RuntimeError::new(
+                    name,
+                    &format!("Undefined variable '{}'.", name.lexeme),
+                ))
+            }
         }
     }
 
     pub fn get(&self, name: &Token) -> RuntimeResult<Literal> {
-        match self.values.get(&name.lexeme) {
+        match self.values.borrow().get(&name.lexeme) {
             Some(literal) => Ok(literal.clone()),
-            None => Err(RuntimeError::new(
-                name,
-                &format!("Undefined variable '{}'.", name.lexeme),
-            )),
+            None => {
+                if let Some(ref env) = self.enclosing {
+                    env.get(name)
+                } else {
+                    Err(RuntimeError::new(
+                        name,
+                        &format!("Undefined variable '{}'.", name.lexeme),
+                    ))
+                }
+            }
         }
     }
 }
