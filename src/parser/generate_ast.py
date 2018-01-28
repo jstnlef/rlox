@@ -56,6 +56,7 @@ if __name__ == '__main__':
         ('stmt', [
             ('Block', ['Vec<Box<Stmt>>']),
             ('Expression', ['Box<Expr>']),
+            ('If', ['Box<Expr>', 'Box<Stmt>', 'Option<Box<Stmt>>']),
             ('Print', ['Box<Expr>']),
             ('Var', ['Token', 'Box<Expr>'])
         ])

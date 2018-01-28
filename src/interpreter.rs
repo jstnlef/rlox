@@ -53,6 +53,14 @@ impl StmtVisitor<RuntimeResult<()>> for Interpreter {
                 self.evaluate(expr)?;
                 Ok(())
             }
+            Stmt::If(ref condition, ref then_clause, ref maybe_else_clause) => {
+                if is_truthy(self.evaluate(condition)?) {
+                    self.execute(then_clause)?
+                } else if let Some(ref else_clause) = *maybe_else_clause {
+                    self.execute(else_clause)?
+                }
+                Ok(())
+            }
             Stmt::Print(ref expr) => {
                 let value = self.evaluate(expr)?;
                 println!("{}", value);

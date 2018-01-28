@@ -1,0 +1,15 @@
+var x = false;
+
+if (x) {
+    print "x was true";
+} else {
+    print "x was false";
+}
+
+x = true;
+
+if (x) {
+    print "x was true";
+} else {
+    print "x was false";
+}
