@@ -79,9 +79,9 @@ impl Parser {
     }
 
     fn if_statement(&mut self) -> ParseResult<Box<Stmt>> {
-        self.consume_token(TokenType::LEFT_PAREN, "Expect '(' after 'if'.");
+        self.consume_token(TokenType::LEFT_PAREN, "Expect '(' after 'if'.")?;
         let condition = self.expression()?;
-        self.consume_token(TokenType::RIGHT_PAREN, "Expect ')' after if condition.");
+        self.consume_token(TokenType::RIGHT_PAREN, "Expect ')' after if condition.")?;
 
         let then_branch = self.statement()?;
         let else_branch = if self.match_token(&[TokenType::ELSE]) {
@@ -125,7 +125,8 @@ impl Parser {
     }
 
     fn assignment(&mut self) -> ParseResult<Box<Expr>> {
-        let expr = self.equality()?;
+        let expr = self.or()?;
+
         if self.match_token(&[TokenType::EQUAL]) {
             let equals = self.previous().clone();
             let value = self.assignment()?;
@@ -135,6 +136,28 @@ impl Parser {
             }
 
             return Err(self.error(&equals, "Invalid assignment target."));
+        }
+        Ok(expr)
+    }
+
+    fn or(&mut self) -> ParseResult<Box<Expr>> {
+        let mut expr = self.and()?;
+
+        while self.match_token(&[TokenType::OR]) {
+            let operator = self.previous().clone();
+            let right = self.and()?;
+            expr = Box::new(Expr::Logical(expr, operator, right));
+        }
+        Ok(expr)
+    }
+
+    fn and(&mut self) -> ParseResult<Box<Expr>> {
+        let mut expr = self.equality()?;
+
+        while self.match_token(&[TokenType::AND]) {
+            let operator = self.previous().clone();
+            let right = self.equality()?;
+            expr = Box::new(Expr::Logical(expr, operator, right));
         }
         Ok(expr)
     }

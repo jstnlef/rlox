@@ -54,7 +54,7 @@ impl StmtVisitor<RuntimeResult<()>> for Interpreter {
                 Ok(())
             }
             Stmt::If(ref condition, ref then_clause, ref maybe_else_clause) => {
-                if is_truthy(self.evaluate(condition)?) {
+                if is_truthy(&self.evaluate(condition)?) {
                     self.execute(then_clause)?
                 } else if let Some(ref else_clause) = *maybe_else_clause {
                     self.execute(else_clause)?
@@ -79,6 +79,22 @@ impl ExprVisitor<RuntimeResult<Literal>> for Interpreter {
     fn visit_expr(&mut self, expr: &Box<Expr>) -> RuntimeResult<Literal> {
         match **expr {
             Expr::Literal(ref literal) => Ok(literal.clone()),
+
+            Expr::Logical(ref lhs, ref token, ref rhs) => {
+                let left = self.evaluate(lhs)?;
+
+                if token.token_type == TokenType::OR {
+                    if is_truthy(&left) {
+                        return Ok(left);
+                    }
+                } else {
+                    if !is_truthy(&left) {
+                        return Ok(left);
+                    }
+                }
+
+                self.evaluate(rhs)
+            }
 
             Expr::Binary(ref lhs, ref token, ref rhs) => {
                 let left = self.evaluate(lhs)?;
@@ -105,7 +121,7 @@ impl ExprVisitor<RuntimeResult<Literal>> for Interpreter {
             Expr::Unary(ref token, ref e) => {
                 let right = self.evaluate(e)?;
                 match token.token_type {
-                    TokenType::BANG => Ok(Literal::Boolean(!is_truthy(right))),
+                    TokenType::BANG => Ok(Literal::Boolean(!is_truthy(&right))),
                     TokenType::MINUS => {
                         match right {
                             Literal::Number(n) => Ok(Literal::Number(-n)),
@@ -148,8 +164,8 @@ impl RuntimeError {
     }
 }
 
-fn is_truthy(literal: Literal) -> bool {
-    match literal {
+fn is_truthy(literal: &Literal) -> bool {
+    match *literal {
         Literal::Nil => false,
         Literal::Boolean(b) => b,
         _ => true,
