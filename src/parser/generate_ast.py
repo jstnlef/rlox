@@ -59,6 +59,7 @@ if __name__ == '__main__':
             ('Expression', ['Box<Expr>']),
             ('If', ['Box<Expr>', 'Box<Stmt>', 'Option<Box<Stmt>>']),
             ('Print', ['Box<Expr>']),
-            ('Var', ['Token', 'Box<Expr>'])
+            ('Var', ['Token', 'Box<Expr>']),
+            ('While', ['Box<Expr>', 'Box<Stmt>'])
         ])
     ])

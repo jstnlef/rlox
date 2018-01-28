@@ -72,6 +72,9 @@ impl Parser {
         if self.match_token(&[TokenType::PRINT]) {
             return self.print_statement();
         }
+        if self.match_token(&[TokenType::WHILE]) {
+            return self.while_statement();
+        }
         if self.match_token(&[TokenType::LEFT_BRACE]) {
             return Ok(Box::new(Stmt::Block(self.block()?)));
         }
@@ -100,6 +103,14 @@ impl Parser {
             "Expect ';' after value.",
         )?;
         Ok(Box::new(Stmt::Print(value)))
+    }
+
+    fn while_statement(&mut self) -> ParseResult<Box<Stmt>> {
+        self.consume_token(TokenType::LEFT_PAREN, "Expect '(' after 'while'.");
+        let condition = self.expression()?;
+        self.consume_token(TokenType::RIGHT_PAREN, "Expect ')' after condition.");
+        let body = self.statement()?;
+        Ok(Box::new(Stmt::While(condition, body)))
     }
 
     fn block(&mut self) -> ParseResult<Vec<Box<Stmt>>> {

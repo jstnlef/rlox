@@ -24,6 +24,7 @@ pub enum Stmt {
     If(Box<Expr>, Box<Stmt>, Option<Box<Stmt>>),
     Print(Box<Expr>),
     Var(Token, Box<Expr>),
+    While(Box<Expr>, Box<Stmt>),
 }
 
 pub trait StmtVisitor<E> {

@@ -49,10 +49,12 @@ impl StmtVisitor<RuntimeResult<()>> for Interpreter {
                 self.execute_block(statements, enclosed_env)?;
                 Ok(())
             }
+
             Stmt::Expression(ref expr) => {
                 self.evaluate(expr)?;
                 Ok(())
             }
+
             Stmt::If(ref condition, ref then_clause, ref maybe_else_clause) => {
                 if is_truthy(&self.evaluate(condition)?) {
                     self.execute(then_clause)?
@@ -61,11 +63,20 @@ impl StmtVisitor<RuntimeResult<()>> for Interpreter {
                 }
                 Ok(())
             }
+
             Stmt::Print(ref expr) => {
                 let value = self.evaluate(expr)?;
                 println!("{}", value);
                 Ok(())
             }
+
+            Stmt::While(ref condition, ref body) => {
+                while is_truthy(&self.evaluate(condition)?) {
+                    self.execute(body)?
+                }
+                Ok(())
+            }
+
             Stmt::Var(ref name, ref initializer) => {
                 let value = self.evaluate(initializer)?;
                 Rc::clone(&self.environment).define(&name.lexeme, &value);
