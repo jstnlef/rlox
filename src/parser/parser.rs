@@ -66,6 +66,9 @@ impl Parser {
     }
 
     fn statement(&mut self) -> ParseResult<Box<Stmt>> {
+        if self.match_token(&[TokenType::FOR]) {
+            return self.for_statement();
+        }
         if self.match_token(&[TokenType::IF]) {
             return self.if_statement();
         }
@@ -79,6 +82,51 @@ impl Parser {
             return Ok(Box::new(Stmt::Block(self.block()?)));
         }
         self.expression_statement()
+    }
+
+    fn for_statement(&mut self) -> ParseResult<Box<Stmt>> {
+        self.consume_token(TokenType::LEFT_PAREN, "Expect '(' after 'for'.")?;
+
+        let maybe_initializer = if self.match_token(&[TokenType::SEMICOLON]) {
+            None
+        } else if self.match_token(&[TokenType::VAR]) {
+            Some(self.var_declaration()?)
+        } else {
+            Some(self.expression_statement()?)
+        };
+
+        let maybe_condition = if !self.check(&TokenType::SEMICOLON) {
+            Some(self.expression()?)
+        } else {
+            None
+        };
+        self.consume_token(TokenType::SEMICOLON, "Expect ';' after loop condition.")?;
+
+        let maybe_increment = if !self.check(&TokenType::RIGHT_PAREN) {
+            Some(self.expression()?)
+        } else {
+            None
+        };
+        self.consume_token(TokenType::RIGHT_PAREN, "Expect ')' after for clauses.")?;
+
+        let mut body = self.statement()?;
+
+        // Desugar the for loop into a while loop construct
+        if let Some(increment) = maybe_increment {
+            body = Box::new(Stmt::Block(vec![body, Box::new(Stmt::Expression(increment))]));
+        }
+
+        let condition = match maybe_condition {
+            Some(condition) => condition,
+            None => Box::new(Expr::Literal(Literal::Boolean(true)))
+        };
+        body = Box::new(Stmt::While(condition, body));
+
+        if let Some(initializer) = maybe_initializer {
+            body = Box::new(Stmt::Block(vec![initializer, body]));
+        }
+
+        Ok(body)
     }
 
     fn if_statement(&mut self) -> ParseResult<Box<Stmt>> {
@@ -106,9 +154,9 @@ impl Parser {
     }
 
     fn while_statement(&mut self) -> ParseResult<Box<Stmt>> {
-        self.consume_token(TokenType::LEFT_PAREN, "Expect '(' after 'while'.");
+        self.consume_token(TokenType::LEFT_PAREN, "Expect '(' after 'while'.")?;
         let condition = self.expression()?;
-        self.consume_token(TokenType::RIGHT_PAREN, "Expect ')' after condition.");
+        self.consume_token(TokenType::RIGHT_PAREN, "Expect ')' after condition.")?;
         let body = self.statement()?;
         Ok(Box::new(Stmt::While(condition, body)))
     }

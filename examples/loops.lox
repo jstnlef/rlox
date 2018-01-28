@@ -4,3 +4,13 @@ while (i > 0) {
     print i;
     i = i - 1;
 }
+
+// Fib!
+var b = 1;
+
+for (var a = 0; a < 1000; i = i + 1) {
+    print a;
+    var temp = a;
+    a = b;
+    b = temp + b;
+}
