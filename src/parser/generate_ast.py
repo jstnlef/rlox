@@ -50,6 +50,7 @@ if __name__ == '__main__':
             ('Literal', ['Literal']),
             ('Logical', ['Box<Expr>', 'Token', 'Box<Expr>']),
             ('Binary', ['Box<Expr>', 'Token', 'Box<Expr>']),
+            ('Call', ['Box<Expr>', 'Token', 'Vec<Box<Expr>>']),
             ('Unary', ['Token', 'Box<Expr>']),
             ('Grouping', ['Box<Expr>']),
             ('Variable', ['Token'])

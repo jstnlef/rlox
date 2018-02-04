@@ -1,6 +1,8 @@
 use std::fmt;
 use std::collections::HashMap;
 
+use lox_object::LoxObject;
+
 pub struct Scanner {
     source: String,
     tokens: Vec<Token>,
@@ -298,6 +300,12 @@ pub enum Literal {
     Number(f64),
     Boolean(bool),
     Nil,
+}
+
+impl Literal {
+    pub fn to_lox_object(self) -> LoxObject {
+        LoxObject::Literal(self)
+    }
 }
 
 impl fmt::Display for Literal {

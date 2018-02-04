@@ -6,6 +6,8 @@ mod scanner;
 mod parser;
 mod environment;
 mod interpreter;
+mod lox_object;
+mod native_functions;
 
 use std::env;
 use lox::Lox;

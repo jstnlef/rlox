@@ -2,12 +2,13 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use scanner::{Literal, Token};
+use lox_object::LoxObject;
+use scanner::Token;
 use interpreter::{RuntimeError, RuntimeResult};
 
 pub struct Environment {
     enclosing: Option<Rc<Environment>>,
-    values: RefCell<HashMap<String, Literal>>,
+    values: RefCell<HashMap<String, LoxObject>>,
 }
 
 impl Environment {
@@ -25,11 +26,11 @@ impl Environment {
         }
     }
 
-    pub fn define(&self, name: &str, value: &Literal) {
+    pub fn define(&self, name: &str, value: &LoxObject) {
         self.values.borrow_mut().insert(name.to_owned(), value.clone());
     }
 
-    pub fn assign(&self, name: &Token, value: &Literal) -> RuntimeResult<()> {
+    pub fn assign(&self, name: &Token, value: &LoxObject) -> RuntimeResult<()> {
         let mut values = self.values.borrow_mut();
 
         if values.contains_key(&name.lexeme) {
@@ -47,9 +48,9 @@ impl Environment {
         }
     }
 
-    pub fn get(&self, name: &Token) -> RuntimeResult<Literal> {
+    pub fn get(&self, name: &Token) -> RuntimeResult<LoxObject> {
         match self.values.borrow().get(&name.lexeme) {
-            Some(literal) => Ok(literal.clone()),
+            Some(object) => Ok(object.clone()),
             None => {
                 if let Some(ref env) = self.enclosing {
                     env.get(name)

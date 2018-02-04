@@ -2,16 +2,24 @@ use std::rc::Rc;
 
 use environment::Environment;
 use parser::ast::{Expr, ExprVisitor, Stmt, StmtVisitor, AST};
+use lox_object::{LoxObject, Callable};
+use native_functions::Clock;
 use scanner::{Literal, Token, TokenType};
 
 pub struct Interpreter {
+    globals: Rc<Environment>,
     environment: Rc<Environment>,
 }
 
 impl Interpreter {
     pub fn new() -> Self {
+        let globals = Rc::new(Environment::new());
+
+        globals.define("clock", &LoxObject::Function(Rc::new(Clock)));
+
         Interpreter {
-            environment: Rc::new(Environment::new())
+            globals: globals.clone(),
+            environment: globals
         }
     }
 
@@ -26,7 +34,7 @@ impl Interpreter {
         self.visit_stmt(stmt)
     }
 
-    fn evaluate(&mut self, expr: &Box<Expr>) -> RuntimeResult<Literal> {
+    fn evaluate(&mut self, expr: &Box<Expr>) -> RuntimeResult<LoxObject> {
         self.visit_expr(expr)
     }
 
@@ -56,7 +64,7 @@ impl StmtVisitor<RuntimeResult<()>> for Interpreter {
             }
 
             Stmt::If(ref condition, ref then_clause, ref maybe_else_clause) => {
-                if is_truthy(&self.evaluate(condition)?) {
+                if self.evaluate(condition)?.is_truthy() {
                     self.execute(then_clause)?
                 } else if let Some(ref else_clause) = *maybe_else_clause {
                     self.execute(else_clause)?
@@ -71,7 +79,7 @@ impl StmtVisitor<RuntimeResult<()>> for Interpreter {
             }
 
             Stmt::While(ref condition, ref body) => {
-                while is_truthy(&self.evaluate(condition)?) {
+                while self.evaluate(condition)?.is_truthy() {
                     self.execute(body)?
                 }
                 Ok(())
@@ -86,20 +94,20 @@ impl StmtVisitor<RuntimeResult<()>> for Interpreter {
     }
 }
 
-impl ExprVisitor<RuntimeResult<Literal>> for Interpreter {
-    fn visit_expr(&mut self, expr: &Box<Expr>) -> RuntimeResult<Literal> {
+impl ExprVisitor<RuntimeResult<LoxObject>> for Interpreter {
+    fn visit_expr(&mut self, expr: &Box<Expr>) -> RuntimeResult<LoxObject> {
         match **expr {
-            Expr::Literal(ref literal) => Ok(literal.clone()),
+            Expr::Literal(ref literal) => Ok(literal.clone().to_lox_object()),
 
             Expr::Logical(ref lhs, ref token, ref rhs) => {
                 let left = self.evaluate(lhs)?;
 
                 if token.token_type == TokenType::OR {
-                    if is_truthy(&left) {
+                    if left.is_truthy() {
                         return Ok(left);
                     }
                 } else {
-                    if !is_truthy(&left) {
+                    if !left.is_truthy() {
                         return Ok(left);
                     }
                 }
@@ -120,8 +128,8 @@ impl ExprVisitor<RuntimeResult<Literal>> for Interpreter {
                     TokenType::GREATER_EQUAL => greater_equal(&left, &right, &token),
                     TokenType::LESS => less(&left, &right, &token),
                     TokenType::LESS_EQUAL => less_equal(&left, &right, &token),
-                    TokenType::BANG_EQUAL => Ok(Literal::Boolean(!is_equal(&left, &right))),
-                    TokenType::EQUAL_EQUAL => Ok(Literal::Boolean(is_equal(&left, &right))),
+                    TokenType::BANG_EQUAL => Ok(Literal::Boolean(!is_equal(&left, &right)).to_lox_object()),
+                    TokenType::EQUAL_EQUAL => Ok(Literal::Boolean(is_equal(&left, &right)).to_lox_object()),
                     _ => Err(RuntimeError::new(
                         token,
                         "Unrecognized token for Binary operation.",
@@ -129,13 +137,34 @@ impl ExprVisitor<RuntimeResult<Literal>> for Interpreter {
                 }
             }
 
+            Expr::Call(ref callee, ref paren, ref arguments) => {
+                let function = match self.evaluate(callee)? {
+                    LoxObject::Function(c) => c,
+                    _ => return Err(RuntimeError::new(paren, "Can only call functions and classes."))
+                };
+
+                if arguments.len() != function.arity() {
+                    return Err(RuntimeError::new(
+                        paren,
+                        &format!("Expected {} arguments but got {}.", function.arity(), arguments.len())
+                    ))
+                }
+
+                let mut evaluated_args = Vec::with_capacity(arguments.len());
+                for argument in arguments.iter() {
+                    evaluated_args.push(self.evaluate(argument)?);
+                }
+
+                function.call(self, &evaluated_args)
+            }
+
             Expr::Unary(ref token, ref e) => {
                 let right = self.evaluate(e)?;
                 match token.token_type {
-                    TokenType::BANG => Ok(Literal::Boolean(!is_truthy(&right))),
+                    TokenType::BANG => Ok(Literal::Boolean(!right.is_truthy()).to_lox_object()),
                     TokenType::MINUS => {
                         match right {
-                            Literal::Number(n) => Ok(Literal::Number(-n)),
+                            LoxObject::Literal(Literal::Number(n)) => Ok(Literal::Number(-n).to_lox_object()),
                             _ => Err(RuntimeError::new(token, "Operand must be a number.")),
                         }
                     }
@@ -175,53 +204,45 @@ impl RuntimeError {
     }
 }
 
-fn is_truthy(literal: &Literal) -> bool {
-    match *literal {
-        Literal::Nil => false,
-        Literal::Boolean(b) => b,
-        _ => true,
-    }
-}
-
-fn is_equal(left: &Literal, right: &Literal) -> bool {
+fn is_equal(left: &LoxObject, right: &LoxObject) -> bool {
     left == right
 }
 
 fn get_number_operands(
-    left: &Literal,
-    right: &Literal,
+    left: &LoxObject,
+    right: &LoxObject,
     token: &Token,
 ) -> RuntimeResult<(f64, f64)> {
     match (left, right) {
-        (&Literal::Number(l), &Literal::Number(r)) => Ok((l, r)),
+        (&LoxObject::Literal(Literal::Number(l)), &LoxObject::Literal(Literal::Number(r))) => Ok((l, r)),
         _ => Err(RuntimeError::new(token, "Operands must be numbers.")),
     }
 }
 
 
-fn minus(left: &Literal, right: &Literal, token: &Token) -> RuntimeResult<Literal> {
+fn minus(left: &LoxObject, right: &LoxObject, token: &Token) -> RuntimeResult<LoxObject> {
     let (l, r) = get_number_operands(left, right, token)?;
-    Ok(Literal::Number(l - r))
+    Ok(Literal::Number(l - r).to_lox_object())
 }
 
-fn slash(left: &Literal, right: &Literal, token: &Token) -> RuntimeResult<Literal> {
+fn slash(left: &LoxObject, right: &LoxObject, token: &Token) -> RuntimeResult<LoxObject> {
     let (l, r) = get_number_operands(left, right, token)?;
     if r == 0.0 {
         return Err(RuntimeError::new(token, "Divide by zero error."));
     }
-    Ok(Literal::Number(l / r))
+    Ok(Literal::Number(l / r).to_lox_object())
 }
 
-fn star(left: &Literal, right: &Literal, token: &Token) -> RuntimeResult<Literal> {
+fn star(left: &LoxObject, right: &LoxObject, token: &Token) -> RuntimeResult<LoxObject> {
     let (l, r) = get_number_operands(left, right, token)?;
-    Ok(Literal::Number(l * r))
+    Ok(Literal::Number(l * r).to_lox_object())
 }
 
-fn plus(left: &Literal, right: &Literal, token: &Token) -> RuntimeResult<Literal> {
+fn plus(left: &LoxObject, right: &LoxObject, token: &Token) -> RuntimeResult<LoxObject> {
     match (left, right) {
-        (&Literal::Number(l), &Literal::Number(r)) => Ok(Literal::Number(l + r)),
-        (&Literal::String(ref l), &Literal::String(ref r)) => {
-            Ok(Literal::String(format!("{}{}", l, r)))
+        (&LoxObject::Literal(Literal::Number(l)), &LoxObject::Literal(Literal::Number(r))) => Ok(Literal::Number(l + r).to_lox_object()),
+        (&LoxObject::Literal(Literal::String(ref l)), &LoxObject::Literal(Literal::String(ref r))) => {
+            Ok(Literal::String(format!("{}{}", l, r)).to_lox_object())
         }
         _ => Err(RuntimeError::new(
             token,
@@ -230,22 +251,22 @@ fn plus(left: &Literal, right: &Literal, token: &Token) -> RuntimeResult<Literal
     }
 }
 
-fn greater(left: &Literal, right: &Literal, token: &Token) -> RuntimeResult<Literal> {
+fn greater(left: &LoxObject, right: &LoxObject, token: &Token) -> RuntimeResult<LoxObject> {
     let (l, r) = get_number_operands(left, right, token)?;
-    Ok(Literal::Boolean(l > r))
+    Ok(LoxObject::Literal(Literal::Boolean(l > r)))
 }
 
-fn greater_equal(left: &Literal, right: &Literal, token: &Token) -> RuntimeResult<Literal> {
+fn greater_equal(left: &LoxObject, right: &LoxObject, token: &Token) -> RuntimeResult<LoxObject> {
     let (l, r) = get_number_operands(left, right, token)?;
-    Ok(Literal::Boolean(l >= r))
+    Ok(LoxObject::Literal(Literal::Boolean(l >= r)))
 }
 
-fn less(left: &Literal, right: &Literal, token: &Token) -> RuntimeResult<Literal> {
+fn less(left: &LoxObject, right: &LoxObject, token: &Token) -> RuntimeResult<LoxObject> {
     let (l, r) = get_number_operands(left, right, token)?;
-    Ok(Literal::Boolean(l < r))
+    Ok(LoxObject::Literal(Literal::Boolean(l < r)))
 }
 
-fn less_equal(left: &Literal, right: &Literal, token: &Token) -> RuntimeResult<Literal> {
+fn less_equal(left: &LoxObject, right: &LoxObject, token: &Token) -> RuntimeResult<LoxObject> {
     let (l, r) = get_number_operands(left, right, token)?;
-    Ok(Literal::Boolean(l <= r))
+    Ok(LoxObject::Literal(Literal::Boolean(l <= r)))
 }

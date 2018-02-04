@@ -260,7 +260,40 @@ impl Parser {
             let right = self.unary();
             return Ok(Box::new(Expr::Unary(operator, right?)));
         }
-        self.primary()
+        self.call()
+    }
+
+    fn call(&mut self) -> ParseResult<Box<Expr>> {
+        let mut expr = self.primary()?;
+
+        loop {
+            if self.match_token(&[TokenType::LEFT_PAREN]) {
+                expr = self.finish_call(expr)?;
+            } else {
+                break;
+            }
+        }
+
+        Ok(expr)
+    }
+
+    fn finish_call(&mut self, callee: Box<Expr>) -> ParseResult<Box<Expr>> {
+        let mut arguments = Vec::new();
+        if !self.check(&TokenType::RIGHT_PAREN) {
+            loop {
+                if arguments.len() >= 8 {
+                    return Err(self.error(self.peek(), "Cannot have more than 8 arguments."));
+                }
+                arguments.push(self.expression()?);
+                if !self.match_token(&[TokenType::COMMA]) {
+                    break;
+                }
+            }
+        }
+
+        let paren = self.consume_token(TokenType::RIGHT_PAREN, "Expect ')' after arguments.")?;
+
+        Ok(Box::new(Expr::Call(callee, paren.clone(), arguments)))
     }
 
     fn primary(&mut self) -> ParseResult<Box<Expr>> {
